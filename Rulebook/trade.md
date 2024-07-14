@@ -9,20 +9,20 @@ In the game, trade is very conservative, meaning that the default behaviour of c
 ## How trade works
 
 Trade occurs in four phases:
-- Selection Phase: each city determines the "favouribility" of each other city, being a measure of how much the city wants to trade with the other.
+- Selection Phase: each city determines the "favourability" of each other city, being a measure of how much the city wants to trade with the other.
 - Demand Phase: each city finds, for each resource, how much each other city would want to import ideally to make them have equal amounts.
-- Offer Phase: each city places an offer for exports to each other city based on a combination of the favouribility and the demand from the previous phases.
+- Offer Phase: each city places an offer for exports to each other city based on a combination of the favourability and the demand from the previous phases.
 - Import Phase: each city imports goods based on the offers it has been provided, but only as much as its available stock of commerce would allow for. 
 
 #### Selection Phase
 
-Each city determines how much it likes a particular destination to export to. The city does so by calculating a favouribility score, that:
+Each city determines how much it likes a particular destination to export to. The city does so by calculating a favourability score, that:
  - increases with the available Commerce of the destination;
  - increases with the shared culture* between the two cities;
  - decreases with the "trade distance" between the cities;
  - decreases with unfavourable trade policies between the origin and destination civilisations (note that they can be the same civilisation). 
 
-The total favouribility scores are then added up for the city, and the relative favourability score to a destination is calculated as the fraction of the total favourability score of that destination. 
+The total favourability scores are then added up for the city, and the relative favourability score to a destination is calculated as the fraction of the total favourability score of that destination. 
 
 #### Demand Phase
 
