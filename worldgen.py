@@ -7,8 +7,8 @@ import random
 # 158 x 63 makes for an aspect ratio of 360 x 140, and approximately keeps the 10000 total tiles of 100 x 100
 # 140 x 70 makes for an aspect ratio of 2 : 1, and approximately keeps the 10000 total of 100 x 100
 
-LENX = 40
-LENY = 20
+LENX = 100
+LENY = 50
 
 def get_neighbors(x, y):
     neighbors = []
@@ -86,10 +86,8 @@ Divergent:  Continent       ocean       ocean
 If more than two plates collide, the number of continental plates is preserved. 2C + 1O -> 2C, and 1C + 2O -> 1C 1O
 """
 
-
-
-NPLATES = 5
-LAND_COVER = 0.40
+NPLATES = int(16 * LENX / LENY)
+LAND_COVER = 0.45
 
 def create_plates():
 
@@ -730,10 +728,15 @@ def build_climate_from_scratch():
     return get_climate_from_tectonics(generate_continents_tile_class())
 
 def build_elev_from_scratch():
+    print("Creating plates...")
     world_plates, plate_sizes = create_plates()
+    print("Assigning plates...")
     plate_types = continents_gen(world_plates, plate_sizes)
+    print("Shifting tectonics...")
     plates_density = move_plates(world_plates, plate_types)
+    print("Shaking up the earth...")
     tile_class = assign_tectonic_class(plates_density)
+    print("Building up elevation...")
     return build_elevation_map(tile_class)
 
 if __name__ == "__main__":
