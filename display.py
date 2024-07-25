@@ -5,6 +5,10 @@ import random
 import city
 import worldgen
 
+import terrain_palettes
+
+EARTH_PLATE_TYPES = [1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0]
+
 TERRAIN_COLORS = {
     "J": (0, 100, 30),
     "d": (200, 200, 150),
@@ -17,7 +21,23 @@ TERRAIN_COLORS = {
     "I": (225, 225, 255),
     "~": (0, 15, 200),
     "-": (125, 125, 250),
+    "=": (105, 105, 220)
 }
+TERRAIN_PALETTES = {
+    "J": terrain_palettes.JUNGLE_E,
+    "d": terrain_palettes.DESERT_E,
+    "S": terrain_palettes.SCRUB_E,
+    "g": terrain_palettes.GRASSLAND_E,
+    "p": terrain_palettes.PLAINS_E,
+    "F": terrain_palettes.FOREST_E,
+    "T": terrain_palettes.TAIGA_E,
+    "u": terrain_palettes.TUNDRA_E,
+    "I": terrain_palettes.ICE_E,
+    "~": terrain_palettes.OCEAN_E,
+    "-": terrain_palettes.COAST_E,
+    "=": terrain_palettes.COAST_E,
+}
+
 """
 D8:
 1 2 3
@@ -67,8 +87,12 @@ def draw_terrain(display, climatemap):
     ywidth = int(400 / len(climatemap[0]))
     for x in range(len(climatemap)):
         for y in range(len(climatemap[x])):
-            pygame.draw.rect(display, TERRAIN_COLORS[climatemap[x][y]],
+            # pygame.draw.rect(display, TERRAIN_COLORS[climatemap[x][y]],
+            #                  pygame.Rect(x * xwidth, y * ywidth, xwidth, ywidth))
+            pygame.draw.rect(display, random.choice(TERRAIN_PALETTES[climatemap[x][y]]),
                              pygame.Rect(x * xwidth, y * ywidth, xwidth, ywidth))
+            # pygame.draw.rect(display, TERRAIN_PALETTES[climatemap[x][y]][0],
+            #                  pygame.Rect(x * xwidth, y * ywidth, xwidth, ywidth))
     pygame.display.update()
 
 
@@ -124,6 +148,16 @@ def find_mouse_position(xwidth, ywidth):
     return (int(mouse_pos[0] / xwidth), int(mouse_pos[1] / ywidth))
 
 
+def draw_degree_labels(display, climate_map, xwidth, ywidth, font):
+    display.blit(font.render("67.5°N", True, (0, 0, 0)), (0, ywidth * len(climate_map[0]) // 8))
+    display.blit(font.render("45°N", True, (0, 0, 0)), (0, ywidth * 2 * len(climate_map[0]) // 8))
+    display.blit(font.render("22.5°N", True, (0, 0, 0)), (0, ywidth * 3 * len(climate_map[0]) // 8))
+    display.blit(font.render("0°", True, (0, 0, 0)), (0, ywidth * len(climate_map[0]) // 2))
+    display.blit(font.render("22.5°S", True, (0, 0, 0)), (0, ywidth * 5 * len(climate_map[0]) // 8))
+    display.blit(font.render("45°S", True, (0, 0, 0)), (0, ywidth * 6 * len(climate_map[0]) // 8))
+    display.blit(font.render("67.5°S", True, (0, 0, 0)), (0, ywidth * 7 * len(climate_map[0]) // 8))
+
+
 def main():
     pygame.init()
     font = pygame.font.Font(None, 18)
@@ -135,6 +169,8 @@ def main():
     cities = []
     economy = city.Economy()
     draw_map(display, climate_map)
+    draw_degree_labels(display, climate_map, xwidth, ywidth, font)
+    pygame.display.update()
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -163,4 +199,5 @@ def main():
 
 
 if __name__ == "__main__":
+    sys.setrecursionlimit(10000)
     main()

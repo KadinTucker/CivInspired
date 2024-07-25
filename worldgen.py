@@ -1,5 +1,6 @@
 import math
 import random
+import sys
 
 #min. 3 for both
 # We like 360, 180, for lat long kind of thing
@@ -7,29 +8,30 @@ import random
 # 158 x 63 makes for an aspect ratio of 360 x 140, and approximately keeps the 10000 total tiles of 100 x 100
 # 140 x 70 makes for an aspect ratio of 2 : 1, and approximately keeps the 10000 total of 100 x 100
 
-LENX = 100
-LENY = 50
+LENX = 180
+LENY = 90
 
 def get_neighbors(x, y):
-    neighbors = []
-    if x == LENX - 1:
-        neighbors.append([0, y])
-        neighbors.append([LENX - 2, y])
-    elif x == 0:
-        neighbors.append([1, y])
-        neighbors.append([LENX - 1, y])
-    else:
-        neighbors.append([x - 1, y])
-        neighbors.append([x + 1, y])
-    if y == LENY - 1:
-        neighbors.append([x, y - 1])
-        neighbors.append([(x + LENX // 2) % LENX, y])
-    elif y == 0:
-        neighbors.append([x, 1])
-        neighbors.append([(x + LENX // 2) % LENX, y])
-    else:
-        neighbors.append([x, y + 1])
-        neighbors.append([x, y - 1])
+    neighbors = [wrap_coordinate(x + 1, y), wrap_coordinate(x - 1, y),
+                 wrap_coordinate(x, y + 1), wrap_coordinate(x, y - 1)]
+    # if x == LENX - 1:
+    #     neighbors.append([0, y])
+    #     neighbors.append([LENX - 2, y])
+    # elif x == 0:
+    #     neighbors.append([1, y])
+    #     neighbors.append([LENX - 1, y])
+    # else:
+    #     neighbors.append([x - 1, y])
+    #     neighbors.append([x + 1, y])
+    # if y == LENY - 1:
+    #     neighbors.append([x, y - 1])
+    #     neighbors.append([(x + LENX // 2) % LENX, y])
+    # elif y == 0:
+    #     neighbors.append([x, 1])
+    #     neighbors.append([(x + LENX // 2) % LENX, y])
+    # else:
+    #     neighbors.append([x, y + 1])
+    #     neighbors.append([x, y - 1])
     # FOR NO WRAPPING AROUND: 
     # if y < LENY - 1:
     #     neighbors.append([x, y + 1])
@@ -86,8 +88,8 @@ Divergent:  Continent       ocean       ocean
 If more than two plates collide, the number of continental plates is preserved. 2C + 1O -> 2C, and 1C + 2O -> 1C 1O
 """
 
-NPLATES = int(16 * LENX / LENY)
-LAND_COVER = 0.45
+NPLATES = 26
+LAND_COVER = 0.60
 
 def create_plates():
 
@@ -197,15 +199,21 @@ def get_plate_velocity(scale):
     angle = 2 * math.pi * random.random()
     return (int(math.cos(angle) * magnitude), int(math.sin(angle) * magnitude))
 
-# We decide that continental plates are faster than oceanic plates because that makes more interesting world gens (in reality, oceanic plates are "less impactful")
-def assign_plate_velocities(plate_types, base_velocity = 4, continent_velocity = 5, ocean_velocity = 1):
-    return [get_plate_velocity(base_velocity + continent_velocity * plate_types[i] + ocean_velocity * (1 - plate_types[i])) for i in range(NPLATES)]
 
-def move_plates(world_plates, plate_types):
+PLATE_BASE_VELOCITY = LENX * 0.02
+PLATE_OCEAN_VELOCITY = PLATE_BASE_VELOCITY / 2
+PLATE_CONTINENT_VELOCITY = PLATE_BASE_VELOCITY
+
+# We decide that continental plates are faster than oceanic plates because that makes more interesting world gens (in reality, oceanic plates are "less impactful")
+def assign_plate_velocities(plate_types):
+    return [get_plate_velocity(PLATE_BASE_VELOCITY + PLATE_CONTINENT_VELOCITY * plate_types[i] + PLATE_OCEAN_VELOCITY * (1 - plate_types[i])) for i in range(len(plate_types))]
+
+def move_plates(world_plates, plate_types, plate_velocities=None):
     # Now, move plates and imprint their elevation onto the world
     # Going too far north/south makes it wrap around to halfway around the x-axis
     num_plates = [[[0, 0] for i in range(LENY)] for j in range(LENX)] # The number of plates that have landed on each tile; oceanic, continental, respectively
-    plate_velocities = assign_plate_velocities(plate_types)
+    if plate_velocities is None:
+        plate_velocities = assign_plate_velocities(plate_types)
     for x in range(LENX):
         for y in range(LENY):
             destination_x, destination_y = wrap_coordinate(x + plate_velocities[world_plates[x][y]][0], y + plate_velocities[world_plates[x][y]][1])
@@ -311,26 +319,27 @@ SEAS = [".", "I"]
 WATERS = [".", "I", "-"]
 LANDS = ["l", "M", "V"]
 
-WORLDSIZE = math.sqrt(LENX * LENY)
-CONTINENT_LEVEL = 0.7
-SEA_LEVEL = 1.0
-ELEV_GAIN = 0.0025 # how much elevation is gained per tile away from nearest body of water per size of world. In a 100 tile world, 0.01 is 1 elevation per tile. 
-MOUNTAIN_ELEV = 4 # in real world analogy, about 1500 m. 
+WORLDSIZE = LENX # Assuming the world is round and the circumference is LENX
+ELEV_GAIN = 0.05 / WORLDSIZE # how much elevation is gained per tile away from nearest body of water, per circumference (worldsize)
+SEA_LEVEL = 1.0 # at what elevation ocean is considered to start
+CONTINENT_LEVEL = SEA_LEVEL - 0.02 * 0.05 * WORLDSIZE  # based on average of about 150m depth of continental shelves; increased for playability
+#CONTINENT_LEVEL = SEA_LEVEL - 0.01 * ELEV_GAIN * WORLDSIZE # at what elevation are continental plates located - calculation based on typical continental shelf length of 370 km on earth, or 0.925% of earth circumference
+MOUNTAIN_ELEV = 4 # in real world analogy, about 1500 m.
 MOUNTAIN_ELEV_SHARING = 0.25 # how much of mountain elevation is shared with its neighboring tiles
 VOLCANO_ELEV = 2 # in real world analogy, about 750 m. 
-VOLCANO_ELEV_SHARING = 0.25 # how much of volcano elevation is shared with its neighboring tiles
-DIVERGENCE_ELEV = 0.1 # the elevation bonus given to divergence zones (the class - )
+VOLCANO_ELEV_SHARING = 0.1 # how much of volcano elevation is shared with its neighboring tiles
+DIVERGENCE_ELEV = CONTINENT_LEVEL / 2 # the elevation bonus given to divergence zones (the class - )
 DIVERGENCE_LOWERING = 0.5 # the fraction of elevation gain of divergence zones due to distance from actual oceans
 ISLAND_BASE_ELEV = 0.5 # the base elevation of oceanic island areas
-DEEP_ISLAND_ELEV_GAIN = 0.005 # the amount of elevation gained per tile away from the nearest non-island body of water per world size
-ISLAND_BONUS_ELEV = 0.6 # the amount of extra elevation an island area gets if it gets so lucky
+DEEP_ISLAND_ELEV_GAIN = ELEV_GAIN * 4 # the amount of elevation gained per tile away from the nearest non-island body of water per world size
+ISLAND_BONUS_ELEV = 0.7 # the amount of extra elevation an island area gets if it gets so lucky
 ISLAND_CHANCE = 0.3 # the chance of a volcanic area in the ocean forming land
-ISLAND_SHARING = 0.3 # the amount of elevation an island gives to its neighbors if it indeed forms
-LATITUDE_GAIN_PER_ELEVATION = 4 # based on rough b.o.n. calculation, reduced a bit for playability
+ISLAND_SHARING = 0.4 # the amount of elevation an island gives to its neighbors if it indeed forms
+LATITUDE_GAIN_PER_ELEVATION = 4.5 # based on rough b.o.n. calculation, reduced for realism
 LATITUDE_RANGE = 180.0 # the total range of latitude covered in the y direction of the world
-MAX_WATER_SOURCE_ELEVATION = (MOUNTAIN_ELEV + 4 * LENX * ELEV_GAIN) / 6.0
-RELATIVE_SLOPE_HILL_THRESHHOLD = 1.5 # how many times more the slope is than the typical inland slope for terrain to be considered "hills"
-RELATIVE_SLOPE_MOUNTAIN_THRESHHOLD = 6 # how many times more the slope is than the typical inland slope for terrain to be considered "mountains"
+MAX_WATER_SOURCE_ELEVATION = (MOUNTAIN_ELEV * (1 + MOUNTAIN_ELEV_SHARING) + ELEV_GAIN * WORLDSIZE * WORLDSIZE * 0.05) / 2 # how much elevation is to be gained before a major body of water's influence no longer affects a tile; an average of a mountain's elevation being enough and that 2000 km on earth is about the maximum distance across flat land.
+RELATIVE_SLOPE_HILL_THRESHOLD = 1.5 # how many times more the slope is than the typical inland slope for terrain to be considered "hills"
+RELATIVE_SLOPE_MOUNTAIN_THRESHOLD = 6 # how many times more the slope is than the typical inland slope for terrain to be considered "mountains"
 
 def find_nearest_distance_to_water(tile_classes, location, waters):
     """
@@ -369,7 +378,7 @@ def build_elevation_map(tile_class):
                     for n in get_neighbors(x, y):
                         elev_map[n[0]][n[1]] += ISLAND_SHARING
             if tile_class[x][y] == "-":
-                elev_map[x][y] += DIVERGENCE_ELEV + find_nearest_distance_to_water(tile_class, (x, y), SEAS) * WORLDSIZE * DIVERGENCE_LOWERING
+                elev_map[x][y] += DIVERGENCE_ELEV + find_nearest_distance_to_water(tile_class, (x, y), SEAS) * WORLDSIZE * DIVERGENCE_LOWERING * ELEV_GAIN
     return elev_map
 
 """
@@ -387,6 +396,7 @@ def build_ocean_connection_map(elev_map):
                 connection_map[x][y] = "l"
             else:
                 connection_map[x][y] = "-"
+
     def connect_neighbors_to_ocean(connection_map, x, y):
         neighbors = get_neighbors(x, y)
         for n in neighbors:
@@ -414,9 +424,8 @@ def find_water_longitudinally(connection_map, elev_map, location, direction):
         initial_elev = elev_map[search_location[0]][search_location[1]]
         distance += 1
         search_location = ((search_location[0] + direction) % LENX, search_location[1])
-        found = elev_map[search_location[0]][search_location[1]] < 1
-        if not found:
-            elev_loss += max(initial_elev - elev_map[search_location[0]][search_location[1]], 0)
+        found = connection_map[search_location[0]][search_location[1]] == "."
+        elev_loss += max(initial_elev - max(elev_map[search_location[0]][search_location[1]], SEA_LEVEL), 0)
     return distance, elev_loss
 
 """
@@ -430,6 +439,8 @@ c - inland continent
 def build_waterclass_map(elev_map):
     waterclass_map = [["" for i in range(LENY)] for j in range(LENX)]
     connection_map = build_ocean_connection_map(elev_map)
+    distance_map = [[0 for i in range(LENY)] for j in range(LENX)]
+    elevgain_map = [[0 for i in range(LENY)] for j in range(LENX)]
     for x in range(LENX):
         for y in range(LENY):
             if connection_map[x][y] == ".":
@@ -447,6 +458,11 @@ def build_waterclass_map(elev_map):
                     waterclass_map[x][y] = "e"
                 else:
                     waterclass_map[x][y] = "c"
+                distance_map[x][y] = min(east_dist, west_dist)
+                elevgain_map[x][y] = round(min(east_elev, west_elev), 2)
+    write_matrix_to_csv(distance_map, "water_distance.csv")
+    write_matrix_to_csv(elevgain_map, "elev_gain.csv")
+    write_matrix_to_csv(elev_map, "elev_map.csv")
     return waterclass_map
 
 # csv = ""
@@ -511,14 +527,16 @@ def build_climateclass_map(waterclass_map, elev_map):
     climateclass_map = [["" for i in range(LENY)] for j in range(LENX)]
     for x in range(LENX):
         for y in range(LENY):
-            latitude = abs(convert_to_latitude(y)) + LATITUDE_GAIN_PER_ELEVATION * (elev_map[x][y] - 1)
+            latitude = abs(convert_to_latitude(y)) + LATITUDE_GAIN_PER_ELEVATION * (elev_map[x][y] - SEA_LEVEL)
             if waterclass_map[x][y] == "-":
-                if latitude >= 70:
+                if elev_map[x][y] >= CONTINENT_LEVEL:
+                    climateclass_map[x][y] = "="
+                elif latitude >= 75:
                     climateclass_map[x][y] = "-"
                 else:
                     climateclass_map[x][y] = "~"
             else:
-                if latitude >= 70:
+                if latitude >= 75:
                     climateclass_map[x][y] = "I"
                 elif waterclass_map[x][y] == "e":
                     if latitude < 10:
@@ -555,8 +573,10 @@ def build_climateclass_map(waterclass_map, elev_map):
                         climateclass_map[x][y] = "g"
                     elif latitude < 60:
                         climateclass_map[x][y] = "F"
-                    else:
+                    elif latitude < 70:
                         climateclass_map[x][y] = "T"
+                    else:
+                        climateclass_map[x][y] = "u"
                 elif waterclass_map[x][y] == "c":
                     if latitude < 10:
                         climateclass_map[x][y] = "J"
@@ -569,7 +589,7 @@ def build_climateclass_map(waterclass_map, elev_map):
                     elif latitude < 60:
                         climateclass_map[x][y] = "p"
                     else:
-                        climateclass_map[x][y] = "T"
+                        climateclass_map[x][y] = "u"
     return climateclass_map
 
 def get_maximum_slope(elev_map, x, y, lower_bound=SEA_LEVEL):
@@ -606,9 +626,9 @@ def build_topography_map(elev_map):
                     topography_map[x][y] = "v"
                 else:
                     slope_factor = slope / (WORLDSIZE * ELEV_GAIN)
-                    if slope_factor >= RELATIVE_SLOPE_MOUNTAIN_THRESHHOLD:
+                    if slope_factor >= RELATIVE_SLOPE_MOUNTAIN_THRESHOLD:
                         topography_map[x][y] = "M"
-                    elif slope_factor >= RELATIVE_SLOPE_HILL_THRESHHOLD:
+                    elif slope_factor >= RELATIVE_SLOPE_HILL_THRESHOLD:
                         topography_map[x][y] = "H"
                     else:
                         topography_map[x][y] = "f"
@@ -669,7 +689,7 @@ CLIMATE_WATER_LOSS = {
     "~" : 0
 }
 RUNOFF_LOSS_COEFF = 0.25 # How much of relative runoff is lost when flowing through lossy terrains
-RIVER_THRESHHOLD = WORLDSIZE / 16
+RIVER_THRESHOLD = WORLDSIZE / 16
 
 def build_water_accumulation_map(climate_map, elev_map):
     accumulation_map = [[0.0 for i in range(LENY)] for j in range(LENX)]
@@ -694,7 +714,7 @@ def build_watershed_map(climate_map, elev_map):
         for y in range(LENY):
             if climate_map[x][y] in ["-", "~"]:
                 watershed_map[x][y] = "."
-            elif accumulation_map[x][y] >= RIVER_THRESHHOLD:
+            elif accumulation_map[x][y] >= RIVER_THRESHOLD:
                 watershed_map[x][y] = "|"
             else:
                 watershed_map[x][y] = "-"
@@ -739,5 +759,47 @@ def build_elev_from_scratch():
     print("Building up elevation...")
     return build_elevation_map(tile_class)
 
+def build_elev_from_csv_plates(plates_filename, plate_types, plate_velocities):
+    world_plates = load_matrix_from_csv(plates_filename)
+    set_matrix_to_integers(world_plates)
+    plates_density = move_plates(world_plates, plate_types)
+    tile_class = assign_tectonic_class(plates_density)
+    return build_elevation_map(tile_class)
+
+def transpose_matrix(matrix):
+    newmatrix = []
+    for y in range(len(matrix[0])):
+        newmatrix.append([])
+        for x in range(len(matrix)):
+            newmatrix[y].append(matrix[x][y])
+    return newmatrix
+def load_matrix_from_csv(filename):
+    datafile = open(filename, "r")
+    raw_data = datafile.read().split(",\n")
+    line_data = []
+    for line in raw_data:
+        line_data.append(line.split(","))
+    final_data = transpose_matrix(line_data)
+    return final_data
+
+def set_matrix_to_integers(matrix):
+    for x in range(len(matrix)):
+        for y in range(len(matrix[x])):
+            matrix[x][y] = int(matrix[x][y])
+
+
 if __name__ == "__main__":
-    generate_write_all_maps()
+    sys.setrecursionlimit(5000)
+    print("Creating plates...")
+    world_plates, plate_sizes = create_plates()
+    print("Assigning plates...")
+    plate_types = continents_gen(world_plates, plate_sizes)
+    print("Shifting tectonics...")
+    plates_density = move_plates(world_plates, plate_types)
+    print("Shaking up the earth...")
+    tile_class = assign_tectonic_class(plates_density)
+    print("Building up elevation...")
+    elev_map = build_elevation_map(tile_class)
+    print("Getting water connections...")
+    connection_map = build_ocean_connection_map(elev_map)
+    write_matrix_to_csv(connection_map, "connectionmap.csv")
