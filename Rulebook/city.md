@@ -7,6 +7,27 @@ A city has:
  - territory over which the city has influence;
  - a stock of resources* the city has produced or imported from aborad.
 
+A city also has many other functions, including, but not limited to:
+ - mustering soldiers;
+ - trading resources;
+ - growing and moving population.
+
+### Work and Trade
+
+Each citizen in a city has work that it does, either on a tile or in the city centre, which produces yields and resources.
+
+Citizens in the city also consume resources:
+- Most resources are consumed to produce yields. For example, lumber is converted into Materials.
+- Each citizen cannot consume more than one of each resource per turn. 
+- Materials are consumed by citizens to make Production, which is then used to create things in the city. 
+- Food is consumed by citizens; otherwise they start to starve. If citizens starve for more than one turn, they die. 
+
+After the above two have happened, the city trades; see trade*. 
+
+Any resources that are not either consumed or exported are considered *left-over*. Left-over resources are converted into Commerce at a 2 : 1 ratio. 
+
+Left-over Commerce is then inefficiently converted into Science and Culture, at a 2 : 1 ratio. 
+
 ### City Growth
 
 Cities grow by attracting new people to live there. This happens through passive migration and active migration.
@@ -17,6 +38,8 @@ Both processes are affected by *appeal*, which is a factor based on:
 - The amount of excess food and materials in the city;
 - The diversity of luxury resources in the city;
 - The culture of the city.
+
+The first two points—the number of workable slots and excess food and materials—are called *potential*, and the second two points are called *favour*. 
 
 #### Passive Migration
 

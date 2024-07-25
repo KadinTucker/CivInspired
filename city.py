@@ -24,9 +24,9 @@ DIRECTIONS = [(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1
 6 2 5
 """
 
-BORDER_EXPAND_CULTURE_COST = 20
+BORDER_EXPAND_CULTURE_COST = 10
 PASSIVE_MIGRATION_COST = 100
-PHILOSOPHY_COST = 5
+PHILOSOPHY_COST = 4
 MUSTER_COST = 10
 
 """
@@ -164,9 +164,9 @@ class Economy:
         """
         if self.total_strength[origin_id] == 0:
             return 0
-        return self.export_strength[origin_id][destination_id] / self.total_strength[origin_id] * \
-            self.export_gradient[resource_id][origin_id][destination_id] * self.cities[destination_id].population / max(
-                2, self.distance_matrix[origin_id][destination_id])
+        return (self.export_strength[origin_id][destination_id] / self.total_strength[origin_id]
+                * self.export_gradient[resource_id][origin_id][destination_id]
+                * self.cities[destination_id].population / max(2, self.distance_matrix[origin_id][destination_id]))
 
     def transfer_resource(self, amount, origin_id, destination_id, resource_id):
         """
@@ -178,9 +178,9 @@ class Economy:
         self.cities[destination_id].import_resource(resource_id, amount)
         self.cities[origin_id].export_resource(resource_id, amount)
         if amount > 0:
-            print("%s bought %s %s, spending %s commerce, from %s." % (
-                    self.cities[destination_id].name, amount, RESOURCE_NAMES[resource_id], amount * 2,
-                    self.cities[origin_id].name))
+            print("%s bought %s %s, spending %s commerce, from %s."
+                  % (self.cities[destination_id].name, amount,
+                     RESOURCE_NAMES[resource_id], amount * 2, self.cities[origin_id].name))
 
     def import_all_for_city(self, city_id):
         """
@@ -236,7 +236,7 @@ class City:
         self.commerce = 0
         self.commerce_income = 0
 
-        self.income = [random.randint(0, 2), random.randint(0, 2), random.randint(0, 2)]
+        self.income = [random.randint(1, 2), random.randint(0, 2), random.randint(0, 2)]
 
         self.science_income = 0
         self.culture_income = 0
@@ -277,6 +277,12 @@ class City:
         self.make_resource(FOOD_RESOURCE, TILE_YIELDS[tile_id][0])
         self.make_resource(MATERIAL_RESOURCE, TILE_YIELDS[tile_id][1])
         self.commerce += TILE_YIELDS[tile_id][2]
+
+    def get_border_growth_cost(self):
+        return BORDER_EXPAND_CULTURE_COST * (1 + self.population)
+
+    def get_muster_pool_limit(self):
+        return self.population * MUSTER_COST
 
     def get_distance_to(self, destination):
         """
@@ -319,17 +325,19 @@ class City:
         print(self.name)
         print("Population: %s" % self.population)
         print("Production: %s (+%s)" % (self.production_pool, self.get_expected_production()))
-        print("\t\t\tLocal\tConsumed\tImport\tExport")
+        print("Culture: +%s" % self.culture_income)
+        print("Science: +%s" % self.science_income)
+        print("\t\t\tLocal\tConsumption\tImport\tExport")
         print("Commerce: \t\t+%s\t\t-%s\t\t-%s\t\t+%s" % (self.income[2] * self.population, "--",
                                                           sum(self.resource_imported) * 2, sum(self.resource_exported)))
         for i in range(len(self.resource_stock)):
-            print("%s:\t\t+%s\t\t-%s\t\t+%s\t\t-%s" % (RESOURCE_NAMES[i], self.resource_made[i],
-                                                       self.resource_consumed[i], self.resource_imported[i],
-                                                       self.resource_exported[i]))
-        print("Muster Pool: %s/%s" % (self.muster_pool, MUSTER_COST))
-        print("Philosophy Pool: %s/%s" % (self.philosophy_pool, PHILOSOPHY_COST))
-        print("Border Expansion: %s/%s" % (self.border_culture, BORDER_EXPAND_CULTURE_COST))
-        print("Territory: %s" % self.territory)
+            print("%s:\t\t+%s\t\t-%s\t+%s\t\t-%s" % (RESOURCE_NAMES[i], self.resource_made[i],
+                                                     self.resource_consumed[i], self.resource_imported[i],
+                                                     self.resource_exported[i]))
+        print("Muster Pool: %s/%s" % (self.muster_pool, self.get_muster_pool_limit()))
+        print("Border Expansion: %s/%s" % (self.border_culture, self.get_border_growth_cost()))
+        print("Territory: %s" % self.territory_size)
+        print("Growth Progress: %s/%s" % (self.passive_migration_progress, PASSIVE_MIGRATION_COST))
 
     def get_expected_production(self):
         return min(self.resource_stock[MATERIAL_RESOURCE] + self.resource_made[MATERIAL_RESOURCE], self.population)
@@ -361,10 +369,6 @@ class City:
         self.resource_stock[FOOD_RESOURCE] -= self.population
         if self.resource_stock[FOOD_RESOURCE] < 0:
             self.starving -= self.resource_stock[FOOD_RESOURCE]
-            # Death by starving: maybe it doesn't happen unless, Civ style, the reproduction box is less than empty
-            # if self.starving_citizens > self.population // 2:
-            #     self.starving_citizens -= (self.starving_citizens - self.population // 2)
-            #     self.population -= (self.starving_citizens - self.population // 2)
             self.resource_stock[FOOD_RESOURCE] = 0
         else:
             self.starving = 0
@@ -413,6 +417,8 @@ class City:
         [idea] Initially, muster points are the priority, and philosophy points are accumulated
         only when the muster box is full.
         Later technology might allow for different allocation
+        [idea] Instead, make it happen in two steps: excess resources are turned into commerce,
+        and then that commerce is turned into philosophy if not otherwise used.
         """
         total_excess = 2 * self.resolve_commerce()
         for r in range(len(RESOURCE_NAMES)):
@@ -421,24 +427,20 @@ class City:
         self.muster_pool += total_excess
         if self.muster_pool > MUSTER_COST:
             self.philosophy_pool += self.muster_pool - MUSTER_COST
+            self.muster_pool = MUSTER_COST
         self.resolve_philosophy()
-
-    def get_philosophy_cost(self):
-        return PHILOSOPHY_COST * (1 + self.population)
 
     def resolve_philosophy(self):
         """
         Resolves the philosophy pool in the city
         From all lost excess resources, people "think" and philosophise,
         which causes culture and science to be accumulated
-        [idea] Philosophy has a cost that scales with population/city number, giving an effective cost to
-        having a larger population across more cities
-        Alternatively, culture/science would be made less impactful based on city number and population
         """
-        total_philosophy = self.philosophy_pool // self.get_philosophy_cost()
+        total_philosophy = self.philosophy_pool // PHILOSOPHY_COST
         self.culture_income += total_philosophy
         self.science_income += total_philosophy
-        self.philosophy_pool -= total_philosophy * self.get_philosophy_cost()
+        actual_philosophy = total_philosophy * PHILOSOPHY_COST
+        self.philosophy_pool -= actual_philosophy
 
     def resolve_culture(self):
         """
@@ -449,10 +451,12 @@ class City:
         For now, the borders grow randomly if culture exceeds a threshold
         In future, the player will choose how the border should grow
         and the cost will increase a lot with distance.
+        [idea] The effect of culture is reduced with the population.
+        The effective culture is actually culture / population
         """
         self.border_culture += self.culture_income
-        if self.border_culture >= BORDER_EXPAND_CULTURE_COST:
-            self.border_culture -= BORDER_EXPAND_CULTURE_COST
+        if self.border_culture >= self.get_border_growth_cost():
+            self.border_culture -= self.get_border_growth_cost()
             self.expand_border_randomly()
 
     def reset_income(self):
@@ -480,7 +484,6 @@ class City:
         After trade has been resolved, the city resolves its leftover resources and commerce.
         Then, migration, culture, and science are resolved.
         """
-        self.resolve_commerce()
         self.resolve_leftovers()
         self.resolve_passive_migration()
         self.resolve_culture()

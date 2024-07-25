@@ -16,7 +16,7 @@ The following table summarises all terrain types:
 | Grassland | Normal  | Yes   | 2          | 0              | Foodstuffs, Livestock, Horses                  |                                                       |
 | Plains    | Normal  | Yes   | 1          | 1              | Livestock, Foodstuffs, Horses                  |                                                       |
 | Forest    | Normal  | No    | 1          | 1              | Lumber, Deer                                   | Exists on top of another terrain type; can be cleared |
-| Hills     | Normal  | No    | 0          | 2              | Stone, Minerals                                |                                                       |
+| Hills     | Normal  | No    | 1          | 1              | Stone, Minerals                                |                                                       |
 | Tundra    | Hostile | Yes   | 1          | 0              | Minerals, Deer, Furs, Horses                   |                                                       |
 | Desert    | Hostile | Yes   | 0          | 1              | Minerals, Stone, Incense, Horses               |                                                       |
 | Jungle    | Hostile | No    | 1          | 0              | Tropical Wood, Bananas, Cassava, Many Luxuries | Can be cleared to reveal plains                       |
