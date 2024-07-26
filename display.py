@@ -102,9 +102,10 @@ def draw_watersheds(display, d8):
     for x in range(len(d8)):
         for y in range(len(d8[x])):
             if d8[x][y] != 0:
-                pygame.draw.line(display, (0, 15, 125), (int((x + 0.5) * xwidth), int((y + 0.5) * ywidth)), (
-                int((x + 0.5 + D8_RELATIVE_DESTINATIONS[d8[x][y]][0]) * xwidth),
-                int((y + 0.5 + D8_RELATIVE_DESTINATIONS[d8[x][y]][1]) * ywidth)))
+                pygame.draw.line(display, (0, 15, 125),
+                                 (int((x + 0.5) * xwidth), int((y + 0.5) * ywidth)), (
+                                 int((x + 0.5 + D8_RELATIVE_DESTINATIONS[d8[x][y]][0]) * xwidth),
+                                 int((y + 0.5 + D8_RELATIVE_DESTINATIONS[d8[x][y]][1]) * ywidth)))
     pygame.display.update()
 
 
@@ -131,16 +132,16 @@ def draw_borders(display, xwidth, ywidth, active_city):
 def draw_cities(display, xwidth, ywidth, cities, font):
     for c in cities:
         draw_borders(display, xwidth, ywidth, c)
-        display.blit(font.render(c.name, True, (0, 0, 0)), (c.x * xwidth, c.y * ywidth))
+        # display.blit(font.render(c.name, True, (0, 0, 0)), (c.x * xwidth, c.y * ywidth))
     pygame.display.update()
 
 
 def draw_map(display, climate_map):
-    #topo_map = get_topo(elev_map)
-    #d8 = get_d8(elev_map)
+    # topo_map = get_topo(elev_map)
+    # d8 = get_d8(elev_map)
     draw_terrain(display, climate_map)
-    #draw_watersheds(display, d8)
-    #draw_topography(display, topo_map)
+    # draw_watersheds(display, d8)
+    # draw_topography(display, topo_map)
 
 
 def find_mouse_position(xwidth, ywidth):
@@ -166,6 +167,7 @@ def main():
     climate_map = get_climate_map(elev_map)
     xwidth = int(800 / len(climate_map))
     ywidth = int(400 / len(climate_map[0]))
+    print(xwidth, ywidth)
     cities = []
     economy = city.Economy()
     draw_map(display, climate_map)

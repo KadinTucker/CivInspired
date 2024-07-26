@@ -216,6 +216,7 @@ class City:
 
         self.population = 1
         self.starving = 0  # starving citizens should not continue to starve, or they will die.
+        self.disloyal = 0  # disloyal citizens reduce culture production and do not contribute to treasury or military
 
         self.passive_migration_progress = 0
 
@@ -231,6 +232,9 @@ class City:
         self.taxation_share = 0.0
         self.philosophy_share = 0.5
         self.military_share = 0.5
+
+        self.philosophy_pool = 0
+        self.militia_pool = 0
 
         # Transferable resource statistics
         self.resource_stock = [0 for _ in range(len(RESOURCE_NAMES))]
@@ -428,19 +432,13 @@ class City:
     def resolve_culture(self):
         """
         Turns culture production into actual culture
-        For now, only adds culture to the border growth counter.
-        In future, it will also add this to a moving average of culture
-        Also grows the borders.
-        For now, the borders grow randomly if culture exceeds a threshold
-        In future, the player will choose how the border should grow
-        and the cost will increase a lot with distance.
-        [idea] The effect of culture is reduced with the population.
-        The effective culture is actually culture / population
+        For now, only one culture exists, being that of the city owner, but eventually culture of every civilisation
+        will be included.
+        Citizens then consume culture. For each culture that can't be consumed, a citizen becomes disloyal.
         """
-        self.border_culture += self.culture_income
-        if self.border_culture >= self.get_border_growth_cost():
-            self.border_culture -= self.get_border_growth_cost()
-            self.expand_border_randomly()
+        self.culture += self.culture_income
+        self.culture -= self.population
+
 
     def reset_income(self):
         """

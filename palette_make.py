@@ -26,6 +26,3 @@ def create_expanded_palette(palette, bonusweights=None):
             quotient //= 2
         new_palette.append(composite_colors(palette, weights))
     return new_palette
-
-
-print(create_expanded_palette(BASE_PALETTE, [1, 0, 3, 0, 0]))
