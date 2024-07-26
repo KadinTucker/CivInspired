@@ -12,21 +12,47 @@ A city also has many other functions, including, but not limited to:
  - trading resources;
  - growing and moving population.
 
-### Work and Trade
+### A City's Process
+
+A city's turn happens in three phases:
+ - Production Phase: cities individually produce yields and goods.
+ - Trade Phase: all cities trade with each other.
+ - Resolution Phase: cities individually consume resources, handle migration, and resolve lefover Commerce, as well as Culture, and Science.
+
+#### Production Phase
 
 Each citizen in a city has work that it does, either on a tile or in the city centre, which produces yields and resources.
 
-Citizens in the city also consume resources:
+Resources that are transferable (all goods and some yields) are stored, and others are recorded as produced, to be used in the Resolution Phase.
+
+#### Trade Phase
+
+See Trade*. 
+
+#### Resolution Phase
+
+First, citizens in the city consume resources:
 - Most resources are consumed to produce yields. For example, lumber is converted into Materials.
 - Each citizen cannot consume more than one of each resource per turn. 
 - Materials are consumed by citizens to make Production, which is then used to create things in the city. 
 - Food is consumed by citizens; otherwise they start to starve. If citizens starve for more than one turn, they die. 
 
-After the above two have happened, the city trades; see trade*. 
+Food is special: food that is left-over cannot be stored, and is converted to Passive Migration Progress, representing additional benefits of having excess food available. 
 
-Any resources that are not either consumed or exported are considered *left-over*. Left-over resources are converted into Commerce at a 2 : 1 ratio. 
+The city then resolves both passive and active migration; see below.
 
-Left-over Commerce is then inefficiently converted into Science and Culture, at a 2 : 1 ratio. 
+The remaining yields are then resolved.
+
+Left-over Commerce is partitioned into four different categories:
+ - Treasury: the Commerce goes directly to the player controlling the city (unlocks with the Currency* technology);
+ - Coffers: the Commerce is stored to be used in trade again the next turn (unlocks with the Currency* technology);
+ - Philosophy: the Commerce is converted into Science and Culture, rather inefficiently;
+   - This can be separated into Science and Culture individually after unlocking the right technology (Enlightenment). 
+ - Military: contributes the Commerce to the local militia, who can be mustered into soldiers.
+
+Culture is resolved; see Culture*. 
+
+Lastly, Science generated through yields and through trade is resolved, being allocated to technologies as appropriate. See Technology* for more details.
 
 ### City Growth
 
@@ -37,9 +63,10 @@ Both processes are affected by *appeal*, which is a factor based on:
 - The total number of empty workable slots in the city;
 - The amount of excess food and materials in the city;
 - The diversity of luxury resources in the city;
-- The culture of the city.
+- The culture of the city;
+- Any grievances the city has reduces appeal.
 
-The first two points—the number of workable slots and excess food and materials—are called *potential*, and the second two points are called *favour*. 
+The first two points—the number of workable slots and excess food and materials—are called *potential*, and the last three points are called *favour*. 
 
 #### Passive Migration
 

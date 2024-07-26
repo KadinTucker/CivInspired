@@ -13,7 +13,6 @@ RESOURCE_CATEGORIES = [6, 6, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 2, 2, 3, 3, 4, 
 
 FOOD_RESOURCE = 0
 MATERIAL_RESOURCE = 1
-RESOURCE_DECAY_RATE = 0.2
 RESOURCE_NAMES = "Food Materials".split()
 TEMP_CITY_NAMES = "London Paris Berlin Toledo Rome Moscow Athens Damascus Babylon Mecca Memphis Delhi Samarkand Beijing Shanghai Guangzhou Seoul Kyoto Bangkok Malacca Jakarta Sydney Manila Khartoum Axum Zanzibar Ulundi Kinshasa Kano Timbuktu Toronto Vancouver Philadelphia Chicago SanFrancisco Atlanta Tenochtitlan Palenque Cusco RiodeJaneiro BuenosAires".split()
 
@@ -23,11 +22,8 @@ DIRECTIONS = [(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1
 4 0 1
 6 2 5
 """
-
-BORDER_EXPAND_CULTURE_COST = 10
 PASSIVE_MIGRATION_COST = 100
 PHILOSOPHY_COST = 4
-MUSTER_COST = 10
 
 """
 THE TRADING PROCESS
@@ -45,22 +41,24 @@ ORDER OF PROCESSES
  - PRODUCTION PHASE
 1. All cities reset income (from last turn)
 2. All cities generate resources
-3. All cities consume resources
  - TRADE PHASE
-4. The wider Economy runs
+3. The wider Economy runs
  - RESOLUTION PHASE
-4. All cities resolve leftover and import yields
-5. All cities experience migration
-6. All cities resolve commerce
-7. All cities resolve culture
-8. All cities resolve science
+3. All cities resolve import yields
+4. All cities resolve food
+5. All cities resolve materials
+6. All cities experience migration
+7. All cities resolve commerce
+    - Leftover commerce is apportioned into philosophy, military, and treasury, or locally stored
+8. All cities resolve culture
+9. All cities resolve science
 """
 
 
 class Economy:
     """
-    The Economy class comprises all of the cities in the world
-    It serves to facilitate imports and exports between all of the cities
+    The Economy class comprises all the cities in the world
+    It serves to facilitate imports and exports between all the cities
     """
 
     def __init__(self):
@@ -223,25 +221,31 @@ class City:
 
         self.production_pool = 0
 
-        self.philosophy_pool = 0
-        self.muster_pool = 0
+        # Commerce
+        self.commerce = 0
+        self.commerce_income = 0
 
+        # Commerce allocation
+        self.excess_commerce = 0
+        self.stored_share = 0.0
+        self.taxation_share = 0.0
+        self.philosophy_share = 0.5
+        self.military_share = 0.5
+
+        # Transferable resource statistics
         self.resource_stock = [0 for _ in range(len(RESOURCE_NAMES))]
-
         self.resource_made = [0 for _ in range(len(RESOURCE_NAMES))]
         self.resource_consumed = [0 for _ in range(len(RESOURCE_NAMES))]
         self.resource_imported = [0 for _ in range(len(RESOURCE_NAMES))]
         self.resource_exported = [0 for _ in range(len(RESOURCE_NAMES))]
 
-        self.commerce = 0
-        self.commerce_income = 0
-
+        # Temporary - basic yields income
         self.income = [random.randint(1, 2), random.randint(0, 2), random.randint(0, 2)]
 
+        # Science and culture
         self.science_income = 0
         self.culture_income = 0
-
-        self.border_culture = 0
+        self.culture = 0  # TEMPORARY: culture should have a value for each civilisation, plus one for local culture.
 
     def make_resource(self, resource, quantity):
         """
@@ -277,12 +281,6 @@ class City:
         self.make_resource(FOOD_RESOURCE, TILE_YIELDS[tile_id][0])
         self.make_resource(MATERIAL_RESOURCE, TILE_YIELDS[tile_id][1])
         self.commerce += TILE_YIELDS[tile_id][2]
-
-    def get_border_growth_cost(self):
-        return BORDER_EXPAND_CULTURE_COST * (1 + self.population)
-
-    def get_muster_pool_limit(self):
-        return self.population * MUSTER_COST
 
     def get_distance_to(self, destination):
         """
@@ -334,13 +332,15 @@ class City:
             print("%s:\t\t+%s\t\t-%s\t+%s\t\t-%s" % (RESOURCE_NAMES[i], self.resource_made[i],
                                                      self.resource_consumed[i], self.resource_imported[i],
                                                      self.resource_exported[i]))
-        print("Muster Pool: %s/%s" % (self.muster_pool, self.get_muster_pool_limit()))
-        print("Border Expansion: %s/%s" % (self.border_culture, self.get_border_growth_cost()))
         print("Territory: %s" % self.territory_size)
         print("Growth Progress: %s/%s" % (self.passive_migration_progress, PASSIVE_MIGRATION_COST))
 
     def get_expected_production(self):
         return min(self.resource_stock[MATERIAL_RESOURCE] + self.resource_made[MATERIAL_RESOURCE], self.population)
+
+    def resolve_imports(self):
+        for r in range(len(self.resource_stock)):
+            self.resource_stock[r] += self.resource_imported[r]
 
     def resolve_passive_migration(self):
         """
@@ -364,7 +364,9 @@ class City:
          - The population each eat two food units, including starving citizens
          - If the amount of food left over is less than 0, that many starving citizens are created.
          - If the number of starving citizens is greater than half the population, then a citizen dies instead. 
-         - With some advancements (government, tech), this can be lessened to only killing a citizen when the number is greater than all. 
+         - With some advancements (government, tech), this can be lessened to only killing a citizen when
+           the number is greater than all.
+        Lastly, leftover food is converted into passive migration points, quite inefficiently.
         """
         self.resource_stock[FOOD_RESOURCE] -= self.population
         if self.resource_stock[FOOD_RESOURCE] < 0:
@@ -372,6 +374,8 @@ class City:
             self.resource_stock[FOOD_RESOURCE] = 0
         else:
             self.starving = 0
+        self.passive_migration_progress += self.resource_stock[FOOD_RESOURCE]
+        self.resource_stock[FOOD_RESOURCE] = 0
 
     def resolve_materials(self):
         """
@@ -397,7 +401,7 @@ class City:
         commerce_lost = self.commerce
         self.commerce = self.commerce_income
         self.commerce_income = 0
-        return commerce_lost
+        self.excess_commerce = commerce_lost
 
     def expand_border_randomly(self):
         indices = [i for i in range(9)]
@@ -408,27 +412,6 @@ class City:
                 self.territory_size += 1
                 print("The borders of %s have grown." % self.name)
                 break
-
-    def resolve_leftovers(self):
-        """
-        After trade, leftover resources are either allocated to storage, or lost
-        When resources are lost, they are converted to "philosophy" points or "muster" points
-        Leftover commerce is worth double
-        [idea] Initially, muster points are the priority, and philosophy points are accumulated
-        only when the muster box is full.
-        Later technology might allow for different allocation
-        [idea] Instead, make it happen in two steps: excess resources are turned into commerce,
-        and then that commerce is turned into philosophy if not otherwise used.
-        """
-        total_excess = 2 * self.resolve_commerce()
-        for r in range(len(RESOURCE_NAMES)):
-            total_excess += self.resource_stock[r]
-            self.resource_stock[r] = self.resource_imported[r]
-        self.muster_pool += total_excess
-        if self.muster_pool > MUSTER_COST:
-            self.philosophy_pool += self.muster_pool - MUSTER_COST
-            self.muster_pool = MUSTER_COST
-        self.resolve_philosophy()
 
     def resolve_philosophy(self):
         """
@@ -476,14 +459,14 @@ class City:
         """
         self.reset_income()
         self.work_temp()
-        self.resolve_food()
-        self.resolve_materials()
 
     def run_resolution_phase(self):
         """
         After trade has been resolved, the city resolves its leftover resources and commerce.
         Then, migration, culture, and science are resolved.
         """
-        self.resolve_leftovers()
+        self.resolve_imports()
+        self.resolve_food()
+        self.resolve_materials()
         self.resolve_passive_migration()
         self.resolve_culture()
