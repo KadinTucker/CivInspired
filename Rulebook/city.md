@@ -61,7 +61,7 @@ Cities grow by attracting new people to live there. This happens through passive
 Both processes are affected by *appeal*, which is a factor based on:
 
 - The total number of empty workable slots in the city;
-- The amount of excess food and materials in the city;
+- The amount of excess food and materials yielded in the city last turn;
 - The diversity of luxury resources in the city;
 - The culture of the city;
 - Any grievances the city has reduces appeal.
@@ -77,6 +77,8 @@ The rate of passive growth of a city is proportional to:
 - The appeal of the city.
 
 The main consequence of this is that the larger borders grow, the larger population grows. 
+
+Passive migration points also accumulate at a slow rate with excess food in the city.
 
 Passive migration is the main way cities grow early in the game, but its relevance drops off as populations grow more dense. 
 
