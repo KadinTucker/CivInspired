@@ -2,6 +2,8 @@ import math
 import random
 import sys
 
+import dijkstra
+
 #min. 3 for both
 # We like 360, 180, for lat long kind of thing
 # Civ 3 does 100 x 100 for standard maps
@@ -14,29 +16,6 @@ LENY = 90
 def get_neighbors(x, y):
     neighbors = [wrap_coordinate(x + 1, y), wrap_coordinate(x - 1, y),
                  wrap_coordinate(x, y + 1), wrap_coordinate(x, y - 1)]
-    # if x == LENX - 1:
-    #     neighbors.append([0, y])
-    #     neighbors.append([LENX - 2, y])
-    # elif x == 0:
-    #     neighbors.append([1, y])
-    #     neighbors.append([LENX - 1, y])
-    # else:
-    #     neighbors.append([x - 1, y])
-    #     neighbors.append([x + 1, y])
-    # if y == LENY - 1:
-    #     neighbors.append([x, y - 1])
-    #     neighbors.append([(x + LENX // 2) % LENX, y])
-    # elif y == 0:
-    #     neighbors.append([x, 1])
-    #     neighbors.append([(x + LENX // 2) % LENX, y])
-    # else:
-    #     neighbors.append([x, y + 1])
-    #     neighbors.append([x, y - 1])
-    # FOR NO WRAPPING AROUND: 
-    # if y < LENY - 1:
-    #     neighbors.append([x, y + 1])
-    # if y > 0:
-    #     neighbors.append([x, y - 1])
     return neighbors
 
 def wrap_coordinate(x, y):
@@ -317,6 +296,7 @@ Climate:
 OCEANS = ["."]
 SEAS = [".", "I"]
 WATERS = [".", "I", "-"]
+OPEN_WATERS = [".", "-"]
 LANDS = ["l", "M", "V"]
 
 WORLDSIZE = LENX # Assuming the world is round and the circumference is LENX
@@ -329,7 +309,7 @@ MOUNTAIN_ELEV_SHARING = 0.25 # how much of mountain elevation is shared with its
 VOLCANO_ELEV = 2 # in real world analogy, about 750 m. 
 VOLCANO_ELEV_SHARING = 0.1 # how much of volcano elevation is shared with its neighboring tiles
 DIVERGENCE_ELEV = CONTINENT_LEVEL / 2 # the elevation bonus given to divergence zones (the class - )
-DIVERGENCE_LOWERING = 0.5 # the fraction of elevation gain of divergence zones due to distance from actual oceans
+DIVERGENCE_LOWERING = 0.5 # DEPRECATED the fraction of elevation gain of divergence zones due to distance from actual oceans
 ISLAND_BASE_ELEV = 0.5 # the base elevation of oceanic island areas
 DEEP_ISLAND_ELEV_GAIN = ELEV_GAIN * 4 # the amount of elevation gained per tile away from the nearest non-island body of water per world size
 ISLAND_BONUS_ELEV = 0.7 # the amount of extra elevation an island area gets if it gets so lucky
@@ -348,21 +328,36 @@ def find_nearest_distance_to_water(tile_classes, location, waters):
     min_distance = LENX + LENY
     for x in range(len(tile_classes)):
         for y in range(len(tile_classes[x])):
-            if tile_classes[x][y] in WATERS:
+            if tile_classes[x][y] in waters:
                 distance = abs(location[0] - x) + abs(location[1] - y)
                 if distance < min_distance:
                     min_distance = distance
     return min_distance
+
+def get_water_distance_map(tile_classes, waters):
+    start = None
+    dijkstra_matrix = []
+    for x in range(len(tile_classes)):
+        dijkstra_matrix.append([])
+        for y in range(len(tile_classes[x])):
+            if tile_classes[x][y] in waters:
+                dijkstra_matrix[x].append(0)
+                if start is None:
+                    start = (x, y)
+            else:
+                dijkstra_matrix[x].append(1)
+    return dijkstra.dijkstra_on_matrix(dijkstra_matrix, start[0], start[1])
 
 def build_elevation_map(tile_class):
     """
     Constructs a map of elevations based on the tile classes defined previously
     """
     elev_map = [[0.0 for i in range(LENY)] for j in range(LENX)]
+    waterdist_map = get_water_distance_map(tile_class, OPEN_WATERS)
     for x in range(LENX):
         for y in range(LENY):
             if tile_class[x][y] in LANDS:
-                elev_map[x][y] += CONTINENT_LEVEL + find_nearest_distance_to_water(tile_class, (x, y), WATERS) * WORLDSIZE * ELEV_GAIN
+                elev_map[x][y] += CONTINENT_LEVEL + waterdist_map[x][y] * WORLDSIZE * ELEV_GAIN
                 if tile_class[x][y] == "M":
                     elev_map[x][y] += MOUNTAIN_ELEV
                     for n in get_neighbors(x, y):
@@ -372,13 +367,13 @@ def build_elevation_map(tile_class):
                     for n in get_neighbors(x, y):
                         elev_map[n[0]][n[1]] += VOLCANO_ELEV * VOLCANO_ELEV_SHARING
             if tile_class[x][y] == "I":
-                elev_map[x][y] += ISLAND_BASE_ELEV + find_nearest_distance_to_water(tile_class, (x, y), OCEANS) * WORLDSIZE * DEEP_ISLAND_ELEV_GAIN
+                elev_map[x][y] += ISLAND_BASE_ELEV + waterdist_map[x][y] * WORLDSIZE * DEEP_ISLAND_ELEV_GAIN
                 if random.random() < ISLAND_CHANCE:
                     elev_map[x][y] += ISLAND_BONUS_ELEV
                     for n in get_neighbors(x, y):
                         elev_map[n[0]][n[1]] += ISLAND_SHARING
             if tile_class[x][y] == "-":
-                elev_map[x][y] += DIVERGENCE_ELEV + find_nearest_distance_to_water(tile_class, (x, y), SEAS) * WORLDSIZE * DIVERGENCE_LOWERING * ELEV_GAIN
+                elev_map[x][y] += DIVERGENCE_ELEV
     return elev_map
 
 """
