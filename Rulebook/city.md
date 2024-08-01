@@ -54,6 +54,16 @@ Culture is resolved; see Culture*.
 
 Lastly, Science generated through yields and through trade is resolved, being allocated to technologies as appropriate. See Technology* for more details.
 
+### City Work
+
+The population of a city all have jobs that they do. There are two main types of workers: *labourers* and *specialists*.
+
+Labourers work on a particular tile. With no improvements they simply earn the yields of that tile. With improvements, they may earn additional yields from that tile, or any resources that may be found on that tile. 
+
+Specialists work in a particular improvement, usually in the city's centre. Specialists typically produce a larger amount of just one yield. Some specialists can also work outside of the city centre with the right tile improvements.
+
+Citizens can be reassigned by the player to different jobs, but need one turn to adjust to the new job. 
+
 ### City Growth
 
 Cities grow by attracting new people to live there. This happens through passive migration and active migration.
@@ -64,23 +74,19 @@ Both processes are affected by *appeal*, which is a factor based on:
 - The amount of excess food and materials yielded in the city last turn;
 - The diversity of luxury resources in the city;
 - The culture of the city;
-- Any grievances the city has reduces appeal.
+- Any grievances the city has (reduces appeal).
 
-The first two points—the number of workable slots and excess food and materials—are called *potential*, and the last three points are called *favour*. 
+When a city grows, the player controlling the city must decide where the new population will go. Furthermore, whenever a city should lose a population point, the player controlling the city must decide from where that population point is lost. 
 
 #### Passive Migration
 
-In passive migration, a city grows in population from its own borders. This represents a combination of people gradually settling down from their nomadic ways and assimilating to your culture, as well as typical population growth. 
+In passive migration, a city accumulates people from occupied territories into itself, as well as from excess food. This represents a combination of people gradually settling down from their nomadic ways and assimilating to your culture, as well as typical population growth. 
 
-The rate of passive growth of a city is proportional to:
-- The total number of tiles within the city's boundaries minus the city population (not below 0);
-- The appeal of the city.
+Passive migration consists of people gradually moving from territories occupied by a civilisation into that civilisation's cities. Each territory owned by the city owner contributes migration points to the nearest city. The number of points contributed is based on the appeal of the city, and reduced by the distance to the city. 
 
-The main consequence of this is that the larger borders grow, the larger population grows. 
+Additionally, each excess food a city has at the end of its turn contributes one point to the passive migration pool.
 
-Passive migration points also accumulate at a slow rate with excess food in the city.
-
-Passive migration is the main way cities grow early in the game, but its relevance drops off as populations grow more dense. 
+Once the passive migration pool fills up, the city gains a population point, which then needs to be distributed.. 
 
 #### Active Migration
 
