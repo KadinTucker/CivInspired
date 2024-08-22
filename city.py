@@ -210,9 +210,8 @@ class City:
         self.id = c_id
         self.name = name
 
-        # For now, only the 3x3 region centered on the city is usable as territory
-        self.territory = [True, False, False, False, False, False, False, False, False]  # see the const DIRECTIONS
-        self.territory_size = 1  # a stored value of the number of 'True' in the above
+        # A mutable list of coordinates in the world that are core lands of this city (worked).
+        self.worked_tiles = [(self.x, self.y)]
 
         self.population = 1
         self.starving = 0  # starving citizens should not continue to starve, or they will die.
@@ -264,7 +263,7 @@ class City:
 
     def export_resource(self, resource, quantity):
         self.resource_stock[resource] -= quantity
-        self.commerce_income += quantity
+        self.commerce_income += 2 * quantity
         self.resource_exported[resource] += quantity
 
     def import_resource(self, resource, quantity):
@@ -406,16 +405,6 @@ class City:
         self.commerce = self.commerce_income
         self.commerce_income = 0
         self.excess_commerce = commerce_lost
-
-    def expand_border_randomly(self):
-        indices = [i for i in range(9)]
-        random.shuffle(indices)
-        for i in indices:
-            if not self.territory[i]:
-                self.territory[i] = True
-                self.territory_size += 1
-                print("The borders of %s have grown." % self.name)
-                break
 
     def resolve_philosophy(self):
         """

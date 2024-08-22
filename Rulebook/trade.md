@@ -51,7 +51,7 @@ In practice in a world of many competing cities each with their own desires, the
 
 Once all offers have been set, each city wants to import as much of what is offered to them as possible. However, trade also has a cost.
 
-It costs the importer 2 Commerce to import a single unit of a resource. Of that 2 Commerce, one goes to the exporter, and the other is lost, representing the cost of physically moving the good. 
+It costs the importer 2 Commerce to import a single unit of a resource, and this Commerce goes to the exporting city. 
 
 The importing city counts up how many total resources they could import, given unlimited Commerce. Then, the city determines what fraction of those resources it can purchase (for 2 Commerce each), and buys that fraction (rounded down) of each offer it has been given. 
 

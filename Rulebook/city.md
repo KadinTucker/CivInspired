@@ -5,7 +5,7 @@ A city is a tile element representing a single administrative center for a regio
 A city has:
  - a population of people living in the region;
  - territory over which the city has influence;
- - a stock of resources* the city has produced or imported from aborad.
+ - a stock of resources* the city has produced or imported from abroad.
 
 A city also has many other functions, including, but not limited to:
  - mustering soldiers;
@@ -17,7 +17,7 @@ A city also has many other functions, including, but not limited to:
 A city's turn happens in three phases:
  - Production Phase: cities individually produce yields and goods.
  - Trade Phase: all cities trade with each other.
- - Resolution Phase: cities individually consume resources, handle migration, and resolve lefover Commerce, as well as Culture, and Science.
+ - Resolution Phase: cities individually consume resources, handle migration, and resolve leftover Commerce, as well as Culture, and Science.
 
 #### Production Phase
 
@@ -60,7 +60,7 @@ The population of a city all have jobs that they do. There are two main types of
 
 Labourers work on a particular tile. With no improvements they simply earn the yields of that tile. With improvements, they may earn additional yields from that tile, or any resources that may be found on that tile. 
 
-Specialists work in a particular improvement, usually in the city's centre. Specialists typically produce a larger amount of just one yield. Some specialists can also work outside of the city centre with the right tile improvements.
+Specialists work in a particular improvement, usually in the city's centre. Specialists typically produce a larger amount of just one yield. Some specialists can also work outside the city centre with the right tile improvements.
 
 Citizens can be reassigned by the player to different jobs, but need one turn to adjust to the new job. 
 
@@ -82,11 +82,11 @@ When a city grows, the player controlling the city must decide where the new pop
 
 In passive migration, a city accumulates people from occupied territories into itself, as well as from excess food. This represents a combination of people gradually settling down from their nomadic ways and assimilating to your culture, as well as typical population growth. 
 
-Passive migration consists of people gradually moving from territories occupied by a civilisation into that civilisation's cities. Each territory owned by the city owner contributes migration points to the nearest city. The number of points contributed is based on the appeal of the city, and reduced by the distance to the city. 
+Passive migration consists of people gradually moving from territories occupied by a civilisation into that civilisation's cities. Each territory owned by the city owner contributes migration points to the nearest, most appealing city (aggregated). The number of points contributed is based on the appeal of the city, and reduced by the distance to the city. 
 
 Additionally, each excess food a city has at the end of its turn contributes one point to the passive migration pool.
 
-Once the passive migration pool fills up, the city gains a population point, which then needs to be distributed.. 
+Once the passive migration pool fills up, the city gains a population point, which then needs to be distributed. 
 
 #### Active Migration
 

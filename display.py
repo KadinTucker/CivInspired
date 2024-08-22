@@ -91,13 +91,11 @@ def draw_terrain(display, climatemap, xwidth, ywidth, xcorner, ycorner):
     pygame.display.update()
 
 def draw_borders(display, xwidth, ywidth, xcorner, ycorner, active_city):
-    for t in range(len(active_city.territory)):
-        if active_city.territory[t]:
-            coordinate = get_draw_coordinate(active_city.x + city.DIRECTIONS[t][0],
-                                             active_city.y + city.DIRECTIONS[t][1],
-                                             xwidth, ywidth, xcorner, ycorner)
-            pygame.draw.rect(display, (255, 0, 255),
-                             pygame.Rect(coordinate[0], coordinate[1], xwidth, ywidth), 1)
+    for t in range(len(active_city.land)):
+        coordinate = get_draw_coordinate(active_city.land[t][0], active_city.land[t][1],
+                                         xwidth, ywidth, xcorner, ycorner)
+        pygame.draw.rect(display, (255, 0, 255),
+                         pygame.Rect(coordinate[0], coordinate[1], xwidth, ywidth), 1)
 
 
 def draw_cities(display, xwidth, ywidth, xcorner, ycorner, cities, font):
@@ -148,6 +146,7 @@ def main():
     font = pygame.font.Font(None, 18)
     display = pygame.display.set_mode((800, 400))
     elev_map = regenerate_elev_map()
+    # elev_map = worldgen.build_elev_from_csv_plates("Earth/plates_remapped.csv", EARTH_PLATE_TYPES, None)
     climate_map = get_climate_map(elev_map)
     xcorner = 0
     ycorner = 0
