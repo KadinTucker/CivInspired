@@ -10,8 +10,8 @@ import dijkstra
 # 158 x 63 makes for an aspect ratio of 360 x 140, and approximately keeps the 10000 total tiles of 100 x 100
 # 140 x 70 makes for an aspect ratio of 2 : 1, and approximately keeps the 10000 total of 100 x 100
 
-LENX = 180
-LENY = 90
+LENX = 140
+LENY = 70
 
 def get_neighbors(x, y):
     neighbors = [wrap_coordinate(x + 1, y), wrap_coordinate(x - 1, y),
@@ -67,7 +67,7 @@ Divergent:  Continent       ocean       ocean
 If more than two plates collide, the number of continental plates is preserved. 2C + 1O -> 2C, and 1C + 2O -> 1C 1O
 """
 
-NPLATES = 26
+NPLATES = 35
 LAND_COVER = 0.60
 
 def create_plates():
@@ -300,24 +300,25 @@ OPEN_WATERS = [".", "-"]
 LANDS = ["l", "M", "V"]
 
 WORLDSIZE = LENX # Assuming the world is round and the circumference is LENX
-ELEV_GAIN = 0.05 / WORLDSIZE # how much elevation is gained per tile away from nearest body of water, per circumference (worldsize)
+ELEV_GAIN = 0.07 / WORLDSIZE # how much elevation is gained per tile away from nearest body of water, per circumference (worldsize)
 SEA_LEVEL = 1.0 # at what elevation ocean is considered to start
-CONTINENT_LEVEL = SEA_LEVEL - 0.02 * 0.05 * WORLDSIZE  # based on average of about 150m depth of continental shelves; increased for playability
+CONTINENT_LEVEL = SEA_LEVEL - 0.02 * 0.07 * WORLDSIZE  # based on average of about 150m depth of continental shelves; increased for playability
 #CONTINENT_LEVEL = SEA_LEVEL - 0.01 * ELEV_GAIN * WORLDSIZE # at what elevation are continental plates located - calculation based on typical continental shelf length of 370 km on earth, or 0.925% of earth circumference
-MOUNTAIN_ELEV = 4 # in real world analogy, about 1500 m.
+MOUNTAIN_ELEV = 2 # in real world analogy, about 750 m.
 MOUNTAIN_ELEV_SHARING = 0.25 # how much of mountain elevation is shared with its neighboring tiles
-VOLCANO_ELEV = 2 # in real world analogy, about 750 m. 
+# A very central mountain will then have 4 elevation above its normal land elevation.
+VOLCANO_ELEV = 1.5 # in real world analogy, about 500 m.
 VOLCANO_ELEV_SHARING = 0.1 # how much of volcano elevation is shared with its neighboring tiles
 DIVERGENCE_ELEV = CONTINENT_LEVEL / 2 # the elevation bonus given to divergence zones (the class - )
 DIVERGENCE_LOWERING = 0.5 # DEPRECATED the fraction of elevation gain of divergence zones due to distance from actual oceans
-ISLAND_BASE_ELEV = 0.5 # the base elevation of oceanic island areas
-DEEP_ISLAND_ELEV_GAIN = ELEV_GAIN * 4 # the amount of elevation gained per tile away from the nearest non-island body of water per world size
-ISLAND_BONUS_ELEV = 0.7 # the amount of extra elevation an island area gets if it gets so lucky
-ISLAND_CHANCE = 0.3 # the chance of a volcanic area in the ocean forming land
-ISLAND_SHARING = 0.4 # the amount of elevation an island gives to its neighbors if it indeed forms
-LATITUDE_GAIN_PER_ELEVATION = 4.5 # based on rough b.o.n. calculation, reduced for realism
+ISLAND_BASE_ELEV = CONTINENT_LEVEL / 3 # the base elevation of oceanic island areas
+DEEP_ISLAND_ELEV_GAIN = ELEV_GAIN # the amount of elevation gained per tile away from the nearest non-island body of water per world size
+ISLAND_BONUS_ELEV = CONTINENT_LEVEL / 2 # the amount of extra elevation an island area gets if it gets so lucky
+ISLAND_CHANCE = 0.25 # the chance of a volcanic area in the ocean forming land
+ISLAND_SHARING = CONTINENT_LEVEL / 4 # the amount of elevation an island gives to its neighbors if it indeed forms
+LATITUDE_GAIN_PER_ELEVATION = 7.5 # based on rough b.o.n. calculation, reduced for realism
 LATITUDE_RANGE = 180.0 # the total range of latitude covered in the y direction of the world
-MAX_WATER_SOURCE_ELEVATION = (MOUNTAIN_ELEV * (1 + MOUNTAIN_ELEV_SHARING) + ELEV_GAIN * WORLDSIZE * WORLDSIZE * 0.05) / 2 # how much elevation is to be gained before a major body of water's influence no longer affects a tile; an average of a mountain's elevation being enough and that 2000 km on earth is about the maximum distance across flat land.
+MAX_WATER_SOURCE_ELEVATION = (MOUNTAIN_ELEV * (1 + 2 * MOUNTAIN_ELEV_SHARING) + ELEV_GAIN * WORLDSIZE * WORLDSIZE * 0.05) / 2 # how much elevation is to be gained before a major body of water's influence no longer affects a tile; an average of a mountain's elevation being enough and that 2000 km on earth is about the maximum distance across flat land.
 RELATIVE_SLOPE_HILL_THRESHOLD = 1.5 # how many times more the slope is than the typical inland slope for terrain to be considered "hills"
 RELATIVE_SLOPE_MOUNTAIN_THRESHOLD = 6 # how many times more the slope is than the typical inland slope for terrain to be considered "mountains"
 
