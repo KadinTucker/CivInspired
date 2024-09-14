@@ -19,7 +19,7 @@ The cost of discovery is unique to the technology, and is typically expensive.
 
 The cost of adoption is based on the total number of cities plus the population of the civilisation adopting it, and also scales with the era. This represents the cost of everyone in the civilisation learning about the technology, and a select group of people mastering it. 
 
-The effect of the cost of adoption is that larger empires need to produce more science to actually have technologies readily available. This is akin to nuclear fission being discovered many years before nuclear weapons and power are actually able to be implemented.
+The effect of the cost of adoption is that larger empires need to produce more science to actually have technologies readily available. This is akin to nuclear fission being discovered many years before nuclear weapons and power are actually implemented.
 
 Points are first allocated to discoveries. If a civilisation discovers a technology, then it is recorded that this civilisation has, independently, discovered this technology. Science points are then allocated to adoption.
 
@@ -27,7 +27,7 @@ Points are first allocated to discoveries. If a civilisation discovers a technol
 
 When civilisations trade, science points are also exchanged. These science points are specific to a technology, and are contributed to both the discovery and adoption costs of the technology. 
 
-These points are also specific to the civilisation that discovered the technology. If a civilisation would discover a technology using science from another civilisation's discovery, then the civilisation that originally made the discovery is recorded as such, and scores points. 
+These points are also specific to the civilisation that discovered the technology. If a civilisation discovers a technology using science from another civilisation's discovery, then the civilisation that originally made the discovery is recorded as such, and scores points. 
 
 ### Eras
 

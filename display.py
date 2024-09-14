@@ -91,8 +91,8 @@ def draw_terrain(display, climatemap, xwidth, ywidth, xcorner, ycorner):
     pygame.display.update()
 
 def draw_borders(display, xwidth, ywidth, xcorner, ycorner, active_city):
-    for t in range(len(active_city.land)):
-        coordinate = get_draw_coordinate(active_city.land[t][0], active_city.land[t][1],
+    for t in range(len(active_city.worked_tiles)):
+        coordinate = get_draw_coordinate(active_city.worked_tiles[t][0], active_city.worked_tiles[t][1],
                                          xwidth, ywidth, xcorner, ycorner)
         pygame.draw.rect(display, (255, 0, 255),
                          pygame.Rect(coordinate[0], coordinate[1], xwidth, ywidth), 1)
@@ -181,10 +181,14 @@ def main():
                 elif event.key == pygame.K_PLUS:
                     xwidth += 1
                     ywidth += 1
+                    xcorner += (len(climate_map)) // 2
+                    ycorner += (len(climate_map[0])) // 2
                     redraw(display, climate_map, cities, font, xwidth, ywidth, xcorner, ycorner)
                 elif event.key == pygame.K_MINUS:
                     xwidth -= 1
                     ywidth -= 1
+                    xcorner -= (len(climate_map)) // 2
+                    ycorner -= (len(climate_map[0])) // 2
                     redraw(display, climate_map, cities, font, xwidth, ywidth, xcorner, ycorner)
                 elif event.key == pygame.K_RIGHT:
                     xcorner += 5 * xwidth

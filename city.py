@@ -14,7 +14,7 @@ RESOURCE_CATEGORIES = [6, 6, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 2, 2, 3, 3, 4, 
 FOOD_RESOURCE = 0
 MATERIAL_RESOURCE = 1
 RESOURCE_NAMES = "Food Materials".split()
-TEMP_CITY_NAMES = "London Paris Berlin Toledo Rome Moscow Athens Damascus Babylon Mecca Memphis Delhi Samarkand Beijing Shanghai Guangzhou Seoul Kyoto Bangkok Malacca Jakarta Sydney Manila Khartoum Axum Zanzibar Ulundi Kinshasa Kano Timbuktu Toronto Vancouver Philadelphia Chicago SanFrancisco Atlanta Tenochtitlan Palenque Cusco RiodeJaneiro BuenosAires".split()
+TEMP_CITY_NAMES = "London|Paris|Berlin|Toledo|Rome|Moscow|Athens|Damascus|Babylon|Mecca|Memphis|Delhi|Samarkand|Beijing|Shanghai|Guangzhou|Seoul|Kyoto|Bangkok|Malacca|Jakarta|Sydney|Manila|Khartoum|Axum|Zanzibar|Ulundi|Kinshasa|Kano|Timbuktu|Toronto|Vancouver|Philadelphia|Chicago|San Francisco|Atlanta|Tenochtitlan|Palenque|Cusco|Rio de Janeiro|Buenos Aires".split("|")
 
 DIRECTIONS = [(0, 0), (1, 0), (0, 1), (-1, 0), (0, -1), (1, 1), (-1, 1), (-1, -1), (1, -1)]
 """
@@ -66,8 +66,8 @@ class Economy:
         self.distance_matrix = []  # A square (for easy access) matrix of distances between cities
         self.export_strength = []  # A list of square matrices, with first index origin and second index destination
         self.total_strength = []  # A list of the sums of each row of export_strength; that is, the total export strength for each origin (exporter).
-        self.export_gradient = [[] for i in range(len(RESOURCE_NAMES))]  # Indexed by resource; a list of square matrices
-        self.live_export_offer = [[] for i in range(len(RESOURCE_NAMES))]  # Indexed by resource; a list of square matrices
+        self.export_gradient = [[] for _ in range(len(RESOURCE_NAMES))]  # Indexed by resource; a list of square matrices
+        self.live_export_offer = [[] for _ in range(len(RESOURCE_NAMES))]  # Indexed by resource; a list of square matrices
 
     def add_city(self, city):
         self.cities.append(city)
@@ -335,7 +335,7 @@ class City:
             print("%s:\t\t+%s\t\t-%s\t+%s\t\t-%s" % (RESOURCE_NAMES[i], self.resource_made[i],
                                                      self.resource_consumed[i], self.resource_imported[i],
                                                      self.resource_exported[i]))
-        print("Territory: %s" % self.territory_size)
+        print("Territory: %s" % len(self.worked_tiles))
         print("Growth Progress: %s/%s" % (self.passive_migration_progress, PASSIVE_MIGRATION_COST))
 
     def get_expected_production(self):
@@ -353,7 +353,7 @@ class City:
         A city cannot grow more than once per turn this way,
         and the amount of migration progress per turn cannot exceed the cost of migrating.
         """
-        self.passive_migration_progress += int(min(max(0, self.territory_size - self.population) * self.get_appeal(),
+        self.passive_migration_progress += int(min(max(0, len(self.worked_tiles) - self.population) * self.get_appeal(),
                                                    PASSIVE_MIGRATION_COST))
         if self.passive_migration_progress >= PASSIVE_MIGRATION_COST:
             self.population += 1
@@ -427,7 +427,6 @@ class City:
         """
         self.culture += self.culture_income
         self.culture -= self.population
-
 
     def reset_income(self):
         """
