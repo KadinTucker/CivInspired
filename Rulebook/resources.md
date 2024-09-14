@@ -16,14 +16,14 @@ There are six yields:
 
 Some yields can move between cities, while others cannot. Some yields also improve the appeal* of a city, causing that city to grow. 
 
-| Yield      | Transferable | Improves Appeal |
-|------------|--------------|-----------------|
-| Food       | Yes          | Yes             |
-| Materials  | Yes          | Yes             |
-| Production | No           | No              |
-| Commerce   | Special      | No              |
-| Science    | No           | No              |
-| Culture    | No           | Yes             |
+| Yield      | Transferable | Improves Appeal | Earned from Tiles |
+|------------|--------------|-----------------|-------------------|
+| Food       | Yes          | Yes             | Yes               |
+| Materials  | Yes          | Yes             | Yes               |
+| Production | No           | No              | No                |
+| Commerce   | Special      | No              | Yes               |
+| Science    | No           | No              | No                |
+| Culture    | No           | Yes             | No                |
 
 For more information on how commerce works, see trade*. 
 
@@ -39,14 +39,15 @@ Goods are found as resources in the world on individual tiles. Where a good appe
 
 There are X classes of goods with different functions, appearance rates, and uses, summarised in the table below.
 
-| Class of Good | Function                                       | Diversity helps? | Examples                                                     | Appearance                                            | Replantable                     |
-|---------------|------------------------------------------------|------------------|--------------------------------------------------------------|-------------------------------------------------------|---------------------------------|
-| Foodstuffs    | Produces food for a city                       | Yes              | Wheat, Rice, Maize, Potatoes, Sorghum, Bananas, Cassava      | Restricted by continent                               | Yes                             |
-| Livestock     | Provides food and commerce                     | Yes              | Cattle, Sheep, Buffalo, Bison, Llama, Deer                   | Restricted by continent                               | Yes                             |
-| Material      | Provides materials and improves military units | Sometimes        | Lumber, Tropical Wood, Stone, Iron, Nitre, Rubber, Aluminium | Typically restricted to hostile terrain               | No                              |
-| Luxury        | Improve the appeal of cities that consume them | Yes              | Spices, Wine, Salt, Silk, Sugar, Gems, Ivory, etc.           | Appear in clusters, sometimes restricted by continent | Only if restricted by continent |
-| Energy        | Provides energy* to cities and military units  | No               | Horses, Coal, Oil, Methane, Uranium                          | Typically restricted to hostile terrain               | No, except Horses               |
-| Synthetic     | Varies                                         | Varies           | Plastics, Consumer Goods, Pharmaceuticals, Electricity*      | Nowhere; created by cities themselves                 | N/A                             |
+| Class of Good | Function                                                                          | Diversity helps? | Examples                                                     | Appearance                                            | Replantable                     |
+|---------------|-----------------------------------------------------------------------------------|------------------|--------------------------------------------------------------|-------------------------------------------------------|---------------------------------|
+| Foodstuffs    | Produces food for a city                                                          | Yes              | Wheat, Rice, Maize, Potatoes, Sorghum, Bananas, Cassava      | Restricted by continent                               | Yes                             |
+| Livestock     | Provides food and commerce                                                        | Yes              | Cattle, Sheep, Buffalo, Bison, Llama, Deer                   | Restricted by continent                               | Yes                             |
+| Material      | Provides materials and improves military units                                    | Sometimes        | Lumber, Tropical Wood, Stone, Iron, Nitre, Rubber, Aluminium | Typically restricted to hostile terrain               | No                              |
+| Luxury        | Improve the appeal of cities that consume them                                    | Yes              | Spices, Wine, Salt, Silk, Sugar, Gems, Ivory, etc.           | Appear in clusters, sometimes restricted by continent | Only if restricted by continent |
+| Military      | Allows for stronger military units to be created from cities with these resources | No               | Firearms, Missiles, Drones                                   | Synthetic (see below)                                 |                                 |
+| Energy        | Provides energy* to cities and military units                                     | No               | Horses, Coal, Oil, Methane, Uranium                          | Typically restricted to hostile terrain               | No, except Horses               |
+| Synthetic     | Varies                                                                            | Varies           | Plastics, Consumer Goods, Pharmaceuticals, Electricity*      | Nowhere; created by cities themselves                 | N/A                             |
 
 *: Electricity is a unique good in that it provides energy, but is synthetic. 
 
