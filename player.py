@@ -1,20 +1,22 @@
 import city
 import unit
+import player_territory
 
 class Player:
     """
     An object representing a player of the game
     Includes both computer and human players
     """
-    def __init__(self, p_id):
+    def __init__(self, game_obj, p_id):
         """
         Initialise a new Player object
         Requires a p_id, or unique Player id, by which this player can be referenced
         The Player starts with no cities, units, or territory.
         """
+        self.game = game_obj
         self.id = p_id
         self.cities = []
-        self.territory = []
+        self.territory = player_territory.PlayerTerritory(game_obj, self)
         self.units = []
 
     def add_city(self, c):

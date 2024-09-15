@@ -2,6 +2,7 @@ import pygame
 import sys
 import random
 
+import io_util
 import terrain_palettes
 
 TERRAIN_PALETTES = {
@@ -19,26 +20,8 @@ TERRAIN_PALETTES = {
     "=": terrain_palettes.COAST_E,
 }
 
-def transpose_matrix(matrix):
-    newmatrix = []
-    for y in range(len(matrix[0])):
-        newmatrix.append([])
-        for x in range(len(matrix)):
-            newmatrix[y].append(matrix[x][y])
-    return newmatrix
-
-def load_matrix_from_csv(filename):
-    datafile = open(filename, "r")
-    raw_data = datafile.read().split(",\n")
-    raw_data.remove("")
-    line_data = []
-    for line in raw_data:
-        line_data.append(line.split(","))
-    final_data = transpose_matrix(line_data)
-    return final_data
-
 def load_climate_map(filename):
-    return load_matrix_from_csv(filename)
+    return io_util.load_matrix_from_csv(filename)
 
 def get_draw_coordinate(x, y, map_corner, tile_size, map_dimensions):
     offset = 0
@@ -61,13 +44,14 @@ def generate_color_map(climatemap):
             colormap[x][y] = random.choice(TERRAIN_PALETTES[climatemap[x][y]])
     return colormap
 
+
 PANE_DIMENSIONS = (800, 400)
 
 def main():
     pygame.init()
     font = pygame.font.Font(None, 18)
     display = pygame.display.set_mode(PANE_DIMENSIONS)
-    climatemap = load_climate_map("climatemap.csv")
+    climatemap = load_climate_map("climate_map.csv")
     colormap = generate_color_map(climatemap)
     map_corner = (0, 0)
     tile_size = (8, 8)
