@@ -3,6 +3,7 @@ import random
 
 import io_util
 import dijkstra
+import macro_worldgen
 
 def get_neighbors(x, y, lenx, leny):
     """
@@ -186,7 +187,7 @@ def build_elevation_map(tile_class, continent_level, elev_gain, mountain_chance,
         and increase the elevation of their neighboring tiles
     """
     elev_map = [[0.0 for _ in range(len(tile_class[x]))] for x in range(len(tile_class))]
-    waterdist_map = get_water_distance_map(tile_class, ["."])
+    waterdist_map = get_water_distance_map(tile_class, [".", "-"])
     for x in range(len(tile_class)):
         for y in range(len(tile_class[x])):
             if tile_class[x][y] in ["l", "M", "V", "I"]:
@@ -265,13 +266,13 @@ def find_water_longitudinally(connection_map, elev_map, sea_level, location, dir
     """
     distance = 0
     elev_loss = 0
-    found = connection_map[location[0]][location[1]] == "."
+    found = connection_map[location[0]][location[1]] in [".", "+"]
     search_location = location
     while not found and distance < len(connection_map):
         initial_elev = elev_map[search_location[0]][search_location[1]]
         distance += 1
         search_location = ((search_location[0] + direction) % len(connection_map), search_location[1])
-        found = connection_map[search_location[0]][search_location[1]] == "."
+        found = connection_map[search_location[0]][search_location[1]] in [".", "+"]
         elev_loss += max(initial_elev - max(elev_map[search_location[0]][search_location[1]], sea_level), 0)
     return distance, elev_loss
 
@@ -330,70 +331,41 @@ def build_climateclass_map(waterclass_map, elev_map, continent_level, sea_level,
     climateclass_map = [["" for _ in range(len(waterclass_map[x]))] for x in range(len(waterclass_map))]
     for x in range(len(waterclass_map)):
         for y in range(len(waterclass_map[x])):
-            latitude = (abs(convert_to_latitude(y, len(waterclass_map[x])))
-                        + latitude_per_elevation * (elev_map[x][y] - sea_level))
+            latitude = abs(convert_to_latitude(y, len(waterclass_map[x])))
+            temperature_latitude = latitude + latitude_per_elevation * max(elev_map[x][y] - sea_level, 0)
             if waterclass_map[x][y] == "-":
                 if elev_map[x][y] >= continent_level:
                     climateclass_map[x][y] = "="
-                elif latitude >= 75:
+                elif temperature_latitude >= 75:
                     climateclass_map[x][y] = "-"
                 else:
                     climateclass_map[x][y] = "~"
             else:
-                if latitude >= 75:
-                    climateclass_map[x][y] = "I"
-                elif waterclass_map[x][y] == "e":
-                    if latitude < 10:
-                        climateclass_map[x][y] = "J"
-                    elif latitude < 25:
-                        climateclass_map[x][y] = "S"
-                    elif latitude < 40:
-                        climateclass_map[x][y] = "g"
-                    elif latitude < 50:
-                        climateclass_map[x][y] = "F"
-                    elif latitude < 60:
-                        climateclass_map[x][y] = "p"
-                    else:
-                        climateclass_map[x][y] = "u"
+                west_wetness = macro_worldgen.CLIMATE_WEST_COAST_WETNESS[-1]
+                for i in range(len(macro_worldgen.CLIMATE_WEST_COAST_LATITUDE)):
+                    if latitude < macro_worldgen.CLIMATE_WEST_COAST_LATITUDE[i]:
+                        west_wetness = macro_worldgen.CLIMATE_WEST_COAST_WETNESS[i]
+                        break
+                east_wetness = macro_worldgen.CLIMATE_EAST_COAST_WETNESS[-1]
+                for i in range(len(macro_worldgen.CLIMATE_EAST_COAST_LATITUDE)):
+                    if latitude < macro_worldgen.CLIMATE_EAST_COAST_LATITUDE[i]:
+                        east_wetness = macro_worldgen.CLIMATE_EAST_COAST_WETNESS[i]
+                        break
+                if waterclass_map[x][y] == "i":
+                    wetness = max(west_wetness, east_wetness)
                 elif waterclass_map[x][y] == "w":
-                    if latitude < 10:
-                        climateclass_map[x][y] = "J"
-                    elif latitude < 15:
-                        climateclass_map[x][y] = "S"
-                    elif latitude < 30:
-                        climateclass_map[x][y] = "d"
-                    elif latitude < 40:
-                        climateclass_map[x][y] = "g"
-                    elif latitude < 60:
-                        climateclass_map[x][y] = "F"
-                    else:
-                        climateclass_map[x][y] = "T"
-                elif waterclass_map[x][y] == "i":
-                    if latitude < 15:
-                        climateclass_map[x][y] = "J"
-                    elif latitude < 25:
-                        climateclass_map[x][y] = "S"
-                    elif latitude < 40:
-                        climateclass_map[x][y] = "g"
-                    elif latitude < 60:
-                        climateclass_map[x][y] = "F"
-                    elif latitude < 70:
-                        climateclass_map[x][y] = "T"
-                    else:
-                        climateclass_map[x][y] = "u"
-                elif waterclass_map[x][y] == "c":
-                    if latitude < 10:
-                        climateclass_map[x][y] = "J"
-                    elif latitude < 15:
-                        climateclass_map[x][y] = "S"
-                    elif latitude < 40:
-                        climateclass_map[x][y] = "d"
-                    elif latitude < 50:
-                        climateclass_map[x][y] = "p"
-                    elif latitude < 60:
-                        climateclass_map[x][y] = "p"
-                    else:
-                        climateclass_map[x][y] = "u"
+                    wetness = west_wetness
+                elif waterclass_map[x][y] == "e":
+                    wetness = east_wetness
+                else:
+                    wetness = 0
+                temperature_class = macro_worldgen.CLIMATE_TEMPERATURE_CLASS[-1]
+                for i in range(len(macro_worldgen.CLIMATE_TEMPERATURE_LATITUDE)):
+                    if temperature_latitude < macro_worldgen.CLIMATE_TEMPERATURE_LATITUDE[i]:
+                        temperature_class = macro_worldgen.CLIMATE_TEMPERATURE_CLASS[i]
+                        break
+                climateclass_map[x][y] = macro_worldgen.CLIMATE_COMBINATION_MATRIX[wetness][temperature_class]
+                #print(latitude, temperature_latitude, climateclass_map[x][y], waterclass_map[x][y], wetness, temperature_class)
     return climateclass_map
 
 def generate_all_maps(lenx, leny, n_plates, land_cover, base_velocity, continent_velocity, ocean_velocity,
@@ -414,12 +386,12 @@ def generate_all_maps(lenx, leny, n_plates, land_cover, base_velocity, continent
     return world_plates, plates_density, tile_class, elev_map, waterclass_map, climate_map
 
 def main():
-    wp, pd, tc, em, wm, cm = generate_all_maps(200, 100, 64, 0.5, 2.8,
-                                               1.4, 0.7, 0.7, 1.0,
+    wp, pd, tc, em, wm, cm = generate_all_maps(200, 100, 55, 0.35, 1.5,
+                                               1.5, 0.5, 0.6, 1.0,
                                                0.1, 0.85, 2, 0.5,
-                                               0.90, 1.5, 0.5, 0.5,
-                                               1.05, 0.8, 0.6, 15,
-                                               1.25, 4.5)
+                                               0.90, 1.0, 0.25, 0.5,
+                                               1.05, 0.8, 0.5, 15,
+                                               1.25, 7.5)
     io_util.write_matrix_to_csv(cm, "climate_map.csv")
 
 
