@@ -32,34 +32,34 @@ def wrap_coordinate(x, y, lenx, leny):
     x = x % lenx
     return x, y
 
-def create_plates(lenx, leny, n_plates):
+def create_plates():
     """
     Creates tectonic plates to be moved around, making topography and shaping the world
     """
-    world_plates = [[-1 for _ in range(leny)] for _ in range(lenx)]
-    plate_sizes = [0 for _ in range(n_plates)]
+    world_plates = [[-1 for _ in range(macro_worldgen.LENY)] for _ in range(macro_worldgen.LENX)]
+    plate_sizes = [0 for _ in range(macro_worldgen.N_PLATES)]
 
     # Record the total number of tiles assigned to a plate
-    total_assigned = n_plates
+    total_assigned = macro_worldgen.N_PLATES
 
     # Initialize plates by randomly planting single plates
-    for i in range(n_plates):
-        x = random.randint(0, lenx - 1)
-        y = random.randint(0, leny - 1)
+    for i in range(macro_worldgen.N_PLATES):
+        x = random.randint(0, macro_worldgen.LENX - 1)
+        y = random.randint(0, macro_worldgen.LENY - 1)
         world_plates[x][y] = i
 
     # Generate coordinate lists
-    xvals = [i for i in range(lenx)]
-    yvals = [i for i in range(leny)]
+    xvals = [i for i in range(macro_worldgen.LENX)]
+    yvals = [i for i in range(macro_worldgen.LENY)]
 
     # Grow plates, shuffling coordinate lists, until all tiles have been assigned a plate
-    while total_assigned < lenx * leny:
+    while total_assigned < macro_worldgen.LENX * macro_worldgen.LENY:
         random.shuffle(xvals)
         random.shuffle(yvals)
         for x in xvals:
             for y in yvals:
                 if world_plates[x][y] == -1:
-                    neighbors = get_neighbors(x, y, lenx, leny)
+                    neighbors = get_neighbors(x, y, macro_worldgen.LENX, macro_worldgen.LENY)
                     random.shuffle(neighbors)
                     for n in neighbors:
                         if world_plates[n[0]][n[1]] != -1:
@@ -69,14 +69,14 @@ def create_plates(lenx, leny, n_plates):
                             break
     return world_plates, plate_sizes
 
-def continents_gen(world_plates, plate_sizes, n_plates, land_cover):
+def continents_gen(world_plates, plate_sizes):
     """
     Assigns each plate as either continental or oceanic, according to a 'continents' generation
     This means that only plates that are entirely located in one hemisphere are assigned as continents
     """
-    plate_types = [0 for _ in range(n_plates)]
+    plate_types = [0 for _ in range(macro_worldgen.N_PLATES)]
     # Hemispheres: -1 means not yet assigned, 0 means both, 1 means east, 2 means west
-    plate_hemispheres = [-1 for _ in range(n_plates)]
+    plate_hemispheres = [-1 for _ in range(macro_worldgen.N_PLATES)]
     for y in range(len(world_plates[0])):
         for x in range(len(world_plates)):
             if x < len(world_plates) / 2:
@@ -88,13 +88,14 @@ def continents_gen(world_plates, plate_sizes, n_plates, land_cover):
             elif plate_hemispheres[world_plates[x][y]] != hemisphere:
                 plate_hemispheres[world_plates[x][y]] = 0
     hemispheric = []
-    for p in range(n_plates):
+    for p in range(macro_worldgen.N_PLATES):
         if plate_hemispheres[p] >= 1:
             hemispheric.append(p)
     total_land = 0
     index = 0
     random.shuffle(hemispheric)
-    while total_land < land_cover * len(world_plates) * len(world_plates[0]) and index < len(hemispheric):
+    while (total_land < macro_worldgen.LAND_COVER * len(world_plates) * len(world_plates[0])
+           and index < len(hemispheric)):
         plate_types[hemispheric[index]] = 1
         total_land += plate_sizes[hemispheric[index]]
         index += 1
@@ -109,12 +110,12 @@ def get_plate_velocity(scale):
     angle = 2 * math.pi * random.random()
     return int(math.cos(angle) * magnitude), int(math.sin(angle) * magnitude)
 
-def assign_plate_velocities(plate_types, base_velocity, continent_velocity, ocean_velocity):
+def assign_plate_velocities(plate_types):
     """
     Assigns randomized plate velocities to each plate, depending on their types
     """
-    return [get_plate_velocity(base_velocity + continent_velocity * plate_types[i]
-                               + ocean_velocity * (1 - plate_types[i])) for i in range(len(plate_types))]
+    return [get_plate_velocity(macro_worldgen.PLATE_VELOCITY + macro_worldgen.CONTINENT_VELOCITY * plate_types[i]
+                               + macro_worldgen.OCEAN_VELOCITY * (1 - plate_types[i])) for i in range(len(plate_types))]
 
 def move_plates(world_plates, plate_types, plate_velocities):
     """
@@ -177,9 +178,7 @@ def get_water_distance_map(tile_classes, waters):
                 dijkstra_matrix[x].append(1)
     return dijkstra.dijkstra_on_matrix(dijkstra_matrix, start[0], start[1])
 
-def build_elevation_map(tile_class, continent_level, elev_gain, mountain_chance, mountain_elev, mountain_sharing,
-                        volcano_chance, volcano_elev, volcano_sharing, island_chance, island_elev, island_sharing,
-                        rift_level):
+def build_elevation_map(tile_class):
     """
     Constructs a map of elevations based on the tile classes defined previously
     Oceans have a default level of 0, while continents and rifts  have a higher level
@@ -191,27 +190,27 @@ def build_elevation_map(tile_class, continent_level, elev_gain, mountain_chance,
     for x in range(len(tile_class)):
         for y in range(len(tile_class[x])):
             if tile_class[x][y] in ["l", "M", "V", "I"]:
-                elev_map[x][y] += continent_level + waterdist_map[x][y] * elev_gain
+                elev_map[x][y] += macro_worldgen.CONTINENT_LEVEL + waterdist_map[x][y] * macro_worldgen.ELEV_GAIN
                 if tile_class[x][y] == "M":
-                    if random.random() < mountain_chance:
-                        elev_map[x][y] += mountain_elev
+                    if random.random() < macro_worldgen.MOUNTAIN_CHANCE:
+                        elev_map[x][y] += macro_worldgen.MOUNTAIN_ELEV
                         for n in get_neighbors(x, y, len(tile_class), len(tile_class[x])):
-                            elev_map[n[0]][n[1]] += mountain_sharing
+                            elev_map[n[0]][n[1]] += macro_worldgen.MOUNTAIN_SHARING
                 elif tile_class[x][y] == "V":
-                    if random.random() < volcano_chance:
-                        elev_map[x][y] += volcano_elev
+                    if random.random() < macro_worldgen.VOLCANO_CHANCE:
+                        elev_map[x][y] += macro_worldgen.VOLCANO_ELEV
                         for n in get_neighbors(x, y, len(tile_class), len(tile_class[x])):
-                            elev_map[n[0]][n[1]] += volcano_sharing
+                            elev_map[n[0]][n[1]] += macro_worldgen.VOLCANO_SHARING
             if tile_class[x][y] == "I":
-                if random.random() < island_chance:
-                    elev_map[x][y] += island_elev
+                if random.random() < macro_worldgen.ISLAND_CHANCE:
+                    elev_map[x][y] += macro_worldgen.ISLAND_ELEV
                     for n in get_neighbors(x, y, len(tile_class), len(tile_class[x])):
-                        elev_map[n[0]][n[1]] += island_sharing
+                        elev_map[n[0]][n[1]] += macro_worldgen.ISLAND_SHARING
             if tile_class[x][y] == "-":
-                elev_map[x][y] += rift_level
+                elev_map[x][y] += macro_worldgen.RIFT_LEVEL
     return elev_map
 
-def build_ocean_connection_map(elev_map, sea_level):
+def build_ocean_connection_map(elev_map):
     """
     Assigns a class to each tile determining whether it is connected to an ocean
     Ocean here is defined as an elevation of 0
@@ -232,7 +231,7 @@ def build_ocean_connection_map(elev_map, sea_level):
         for y in range(len(connection_map[x])):
             if elev_map[x][y] == 0.0:
                 connection_map[x][y] = "."
-            elif elev_map[x][y] >= sea_level:
+            elif elev_map[x][y] >= macro_worldgen.SEA_LEVEL:
                 connection_map[x][y] = "l"
             else:
                 connection_map[x][y] = "-"
@@ -257,7 +256,7 @@ def build_ocean_connection_map(elev_map, sea_level):
                 connect_neighbors_to_ocean(connection_map, x, y)
     return connection_map
 
-def find_water_longitudinally(connection_map, elev_map, sea_level, location, direction):
+def find_water_longitudinally(connection_map, elev_map, location, direction):
     """
     Finds the distance to the nearest major water body to a location, in an east or west direction only
     direction: East: +1; West: -1
@@ -273,10 +272,11 @@ def find_water_longitudinally(connection_map, elev_map, sea_level, location, dir
         distance += 1
         search_location = ((search_location[0] + direction) % len(connection_map), search_location[1])
         found = connection_map[search_location[0]][search_location[1]] in [".", "+"]
-        elev_loss += max(initial_elev - max(elev_map[search_location[0]][search_location[1]], sea_level), 0)
+        elev_loss += max(initial_elev
+                         - max(elev_map[search_location[0]][search_location[1]], macro_worldgen.SEA_LEVEL), 0)
     return distance, elev_loss
 
-def build_waterclass_map(elev_map, rainshadow_distance, distance_per_elev, sea_level):
+def build_waterclass_map(elev_map):
     """
     Given an elevation map, get a 'waterclass' map that gives the direction(s), if any, from which atmospheric
         water is sourced for each tile
@@ -289,20 +289,21 @@ def build_waterclass_map(elev_map, rainshadow_distance, distance_per_elev, sea_l
      - e: the tile can get water from the east
      - c: the tile is 'continental' and does not have a major source of atmospheric water
      - -: the tile is oceanic and not considered
+    TODO: Add an "intensity", which says how many rainshadows away it is, to allow for more gradient-like rainshadows
     """
     waterclass_map = [["" for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
-    connection_map = build_ocean_connection_map(elev_map, sea_level)
+    connection_map = build_ocean_connection_map(elev_map)
     for x in range(len(elev_map)):
         for y in range(len(elev_map[x])):
             if connection_map[x][y] == "." or connection_map[x][y] == "+":
                 waterclass_map[x][y] = "-"
             else:
-                east_dist, east_elev = find_water_longitudinally(connection_map, elev_map, sea_level,
-                                                                 (x, y), 1)
-                west_dist, west_elev = find_water_longitudinally(connection_map, elev_map, sea_level,
-                                                                 (x, y), -1)
-                east_coast = east_elev * distance_per_elev + east_dist < rainshadow_distance
-                west_coast = west_elev * distance_per_elev + west_dist < rainshadow_distance
+                east_dist, east_elev = find_water_longitudinally(connection_map, elev_map,(x, y), 1)
+                west_dist, west_elev = find_water_longitudinally(connection_map, elev_map,(x, y), -1)
+                east_coast = (east_elev * macro_worldgen.DISTANCE_PER_ELEV
+                              + east_dist < macro_worldgen.RAINSHADOW_DISTANCE)
+                west_coast = (west_elev * macro_worldgen.DISTANCE_PER_ELEV
+                              + west_dist < macro_worldgen.RAINSHADOW_DISTANCE)
                 if west_coast and east_coast:
                     waterclass_map[x][y] = "i"
                 elif west_coast:
@@ -320,26 +321,30 @@ def convert_to_latitude(y, leny):
     """
     return 180 / leny * (y - leny / 2)
 
-def build_climateclass_map(waterclass_map, elev_map, continent_level, sea_level, latitude_per_elevation):
+def build_climateclass_map(waterclass_map, elev_map):
     """
     Builds a climate class map, which is the final step in generation
     Climate class is determined by the water class, elevation, and latitude
     Primarily, water class (which direction(s) water could come from, or which "coast" the tile is found on, if any)
         and latitude determine what climate is found
-    TODO: Refactor the switch cases to be not hardcoded
     """
     climateclass_map = [["" for _ in range(len(waterclass_map[x]))] for x in range(len(waterclass_map))]
     for x in range(len(waterclass_map)):
         for y in range(len(waterclass_map[x])):
             latitude = abs(convert_to_latitude(y, len(waterclass_map[x])))
-            temperature_latitude = latitude + latitude_per_elevation * max(elev_map[x][y] - sea_level, 0)
+            temperature_latitude = (latitude + macro_worldgen.LATITUDE_PER_ELEV
+                                    * max(elev_map[x][y] - macro_worldgen.SEA_LEVEL, 0))
             if waterclass_map[x][y] == "-":
-                if elev_map[x][y] >= continent_level:
+                # If the tile is underwater, but above "continent level", it becomes a coast
+                if elev_map[x][y] >= macro_worldgen.CONTINENT_LEVEL:
                     climateclass_map[x][y] = "="
-                elif temperature_latitude >= 75:
+                # If the tile is underwater and so cold as to be the coldest temperature class, make sea ice
+                elif temperature_latitude >= macro_worldgen.CLIMATE_TEMPERATURE_LATITUDE[-1]:
                     climateclass_map[x][y] = "-"
+                # Otherwise, the tile is ocean
                 else:
                     climateclass_map[x][y] = "~"
+            # Otherwise, the tile is land, and wetness is determined according to waterclass
             else:
                 west_wetness = macro_worldgen.CLIMATE_WEST_COAST_WETNESS[-1]
                 for i in range(len(macro_worldgen.CLIMATE_WEST_COAST_LATITUDE)):
@@ -365,33 +370,21 @@ def build_climateclass_map(waterclass_map, elev_map, continent_level, sea_level,
                         temperature_class = macro_worldgen.CLIMATE_TEMPERATURE_CLASS[i]
                         break
                 climateclass_map[x][y] = macro_worldgen.CLIMATE_COMBINATION_MATRIX[wetness][temperature_class]
-                #print(latitude, temperature_latitude, climateclass_map[x][y], waterclass_map[x][y], wetness, temperature_class)
     return climateclass_map
 
-def generate_all_maps(lenx, leny, n_plates, land_cover, base_velocity, continent_velocity, ocean_velocity,
-                      continent_level, sea_level, elev_gain, mountain_chance, mountain_elev, mountain_sharing,
-                      volcano_chance, volcano_elev, volcano_sharing, island_chance, island_elev, island_sharing,
-                      rift_level, rainshadow_distance, distance_per_elev, latitude_per_elevation):
-    world_plates, plate_sizes = create_plates(lenx, leny, n_plates)
-    plate_types = continents_gen(world_plates, plate_sizes, n_plates, land_cover)
-    plate_velocities = assign_plate_velocities(plate_types, base_velocity, continent_velocity, ocean_velocity)
+def generate_all_maps():
+    world_plates, plate_sizes = create_plates()
+    plate_types = continents_gen(world_plates, plate_sizes)
+    plate_velocities = assign_plate_velocities(plate_types)
     plates_density = move_plates(world_plates, plate_types, plate_velocities)
     tile_class = assign_tectonic_class(plates_density)
-    elev_map = build_elevation_map(tile_class, continent_level, elev_gain,
-                                   mountain_chance, mountain_elev, mountain_sharing,
-                                   volcano_chance, volcano_elev, volcano_sharing,
-                                   island_chance, island_elev, island_sharing, rift_level)
-    waterclass_map = build_waterclass_map(elev_map, rainshadow_distance, distance_per_elev, sea_level)
-    climate_map = build_climateclass_map(waterclass_map, elev_map, continent_level, sea_level, latitude_per_elevation)
+    elev_map = build_elevation_map(tile_class)
+    waterclass_map = build_waterclass_map(elev_map)
+    climate_map = build_climateclass_map(waterclass_map, elev_map)
     return world_plates, plates_density, tile_class, elev_map, waterclass_map, climate_map
 
 def main():
-    wp, pd, tc, em, wm, cm = generate_all_maps(200, 100, 55, 0.35, 1.5,
-                                               1.5, 0.5, 0.6, 1.0,
-                                               0.1, 0.85, 2, 0.5,
-                                               0.90, 1.0, 0.25, 0.5,
-                                               1.05, 0.8, 0.5, 15,
-                                               1.25, 7.5)
+    wp, pd, tc, em, wm, cm = generate_all_maps()
     io_util.write_matrix_to_csv(cm, "climate_map.csv")
 
 
