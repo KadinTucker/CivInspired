@@ -159,7 +159,7 @@ def assign_tectonic_class(num_plates):
                 tile_class[x][y] = "-"
     return tile_class
 
-def get_water_distance_map(tile_classes, waters):
+def get_water_distance_map_dijkstra(tile_classes, waters):
     """
     Using Dijkstra's algorithm, create a map of distance to the nearest water
     The difficulty of water is defined as 0, and the difficulty of land is 1.
@@ -176,17 +176,42 @@ def get_water_distance_map(tile_classes, waters):
                     start = (x, y)
             else:
                 dijkstra_matrix[x].append(1)
+    print(dijkstra_matrix)
     return dijkstra.dijkstra_on_matrix(dijkstra_matrix, start[0], start[1])
+
+def get_water_distance_map_stepwise(tile_class, waters):
+    waterdist_map = [[-1 for _ in range(len(tile_class[x]))] for x in range(len(tile_class))]
+    total_considered = 0
+    # Initial setup: all waters are set to 0.
+    for x in range(len(tile_class)):
+        for y in range(len(tile_class[x])):
+            if tile_class[x][y] in waters:
+                waterdist_map[x][y] = 0
+                total_considered += 1
+    # Stepwise: consider all tiles. If unconsidered and border a tile of n-1, set them to n.
+    step = 1
+    while total_considered < len(tile_class) * len(tile_class[0]):
+        print(step, total_considered)
+        for x in range(len(tile_class)):
+            for y in range(len(tile_class[x])):
+                if waterdist_map[x][y] == -1:
+                    for n in get_neighbors(x, y, len(tile_class), len(tile_class[x])):
+                        if waterdist_map[n[0]][n[1]] == step - 1:
+                            waterdist_map[x][y] = step
+                            total_considered += 1
+                            break
+        step += 1
+    return waterdist_map
 
 def build_elevation_map(tile_class):
     """
     Constructs a map of elevations based on the tile classes defined previously
-    Oceans have a default level of 0, while continents and rifts  have a higher level
+    Oceans have a default level of 0, while continents and rifts have a higher level
     Mountains, volcanoes, and islands all have a chance to form, and if they do, they gain a bonus elevation
         and increase the elevation of their neighboring tiles
     """
     elev_map = [[0.0 for _ in range(len(tile_class[x]))] for x in range(len(tile_class))]
-    waterdist_map = get_water_distance_map(tile_class, [".", "-"])
+    waterdist_map = get_water_distance_map_stepwise(tile_class, [".", "-"])
     for x in range(len(tile_class)):
         for y in range(len(tile_class[x])):
             if tile_class[x][y] in ["l", "M", "V", "I"]:
@@ -209,6 +234,19 @@ def build_elevation_map(tile_class):
             if tile_class[x][y] == "-":
                 elev_map[x][y] += macro_worldgen.RIFT_LEVEL
     return elev_map
+
+def identify_maxima(elev_map):
+    hill_map = [[False for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
+    for x in range(len(elev_map)):
+        for y in range(len(elev_map[x])):
+            if elev_map[x][y] >= macro_worldgen.SEA_LEVEL:
+                maximal = True
+                for n in get_neighbors(x, y, len(elev_map), len(elev_map[x])):
+                    if elev_map[x][y] < elev_map[n[0]][n[1]]:
+                        maximal = False
+                        break
+                hill_map[x][y] = maximal
+    return hill_map
 
 def build_ocean_connection_map(elev_map):
     """
@@ -292,6 +330,10 @@ def build_waterclass_map(elev_map):
     TODO: Add an "intensity", which says how many rainshadows away it is, to allow for more gradient-like rainshadows
     """
     waterclass_map = [["" for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
+    # How many rainshadows away from an east or west coast, respectively
+    # For X >= 1, (0, 0) would correspond to i, (X, 0) to w, (0, X) to e, and (X, X) to c.
+    # (-1, -1) corresponds to an ocean tile
+    rainshadow_map = [[(-1, -1) for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
     connection_map = build_ocean_connection_map(elev_map)
     for x in range(len(elev_map)):
         for y in range(len(elev_map[x])):
@@ -300,10 +342,12 @@ def build_waterclass_map(elev_map):
             else:
                 east_dist, east_elev = find_water_longitudinally(connection_map, elev_map,(x, y), 1)
                 west_dist, west_elev = find_water_longitudinally(connection_map, elev_map,(x, y), -1)
-                east_coast = (east_elev * macro_worldgen.DISTANCE_PER_ELEV
-                              + east_dist < macro_worldgen.RAINSHADOW_DISTANCE)
-                west_coast = (west_elev * macro_worldgen.DISTANCE_PER_ELEV
-                              + west_dist < macro_worldgen.RAINSHADOW_DISTANCE)
+                east_shadows = (east_elev * macro_worldgen.DISTANCE_PER_ELEV
+                                + east_dist) / macro_worldgen.RAINSHADOW_DISTANCE
+                west_shadows = (west_elev * macro_worldgen.DISTANCE_PER_ELEV
+                                + west_dist) / macro_worldgen.RAINSHADOW_DISTANCE
+                east_coast = east_shadows >= 1
+                west_coast = west_shadows >= 1
                 if west_coast and east_coast:
                     waterclass_map[x][y] = "i"
                 elif west_coast:
@@ -312,7 +356,8 @@ def build_waterclass_map(elev_map):
                     waterclass_map[x][y] = "e"
                 else:
                     waterclass_map[x][y] = "c"
-    return waterclass_map
+                rainshadow_map[x][y] = (east_shadows, west_shadows)
+    return waterclass_map, rainshadow_map
 
 def convert_to_latitude(y, leny):
     """
@@ -321,20 +366,22 @@ def convert_to_latitude(y, leny):
     """
     return 180 / leny * (y - leny / 2)
 
-def build_climateclass_map(waterclass_map, elev_map):
+def build_climateclass_map(rainshadow_map, elev_map):
     """
     Builds a climate class map, which is the final step in generation
     Climate class is determined by the water class, elevation, and latitude
     Primarily, water class (which direction(s) water could come from, or which "coast" the tile is found on, if any)
         and latitude determine what climate is found
     """
-    climateclass_map = [["" for _ in range(len(waterclass_map[x]))] for x in range(len(waterclass_map))]
-    for x in range(len(waterclass_map)):
-        for y in range(len(waterclass_map[x])):
-            latitude = abs(convert_to_latitude(y, len(waterclass_map[x])))
+    climateclass_map = [["" for _ in range(len(rainshadow_map[x]))] for x in range(len(rainshadow_map))]
+    temperature_map = [[-1 for _ in range(len(rainshadow_map[x]))] for x in range(len(rainshadow_map))]
+    wetness_map = [[-1 for _ in range(len(rainshadow_map[x]))] for x in range(len(rainshadow_map))]
+    for x in range(len(rainshadow_map)):
+        for y in range(len(rainshadow_map[x])):
+            latitude = abs(convert_to_latitude(y, len(rainshadow_map[x])))
             temperature_latitude = (latitude + macro_worldgen.LATITUDE_PER_ELEV
                                     * max(elev_map[x][y] - macro_worldgen.SEA_LEVEL, 0))
-            if waterclass_map[x][y] == "-":
+            if rainshadow_map[x][y] == (-1, -1):
                 # If the tile is underwater, but above "continent level", it becomes a coast
                 if elev_map[x][y] >= macro_worldgen.CONTINENT_LEVEL:
                     climateclass_map[x][y] = "="
@@ -344,7 +391,8 @@ def build_climateclass_map(waterclass_map, elev_map):
                 # Otherwise, the tile is ocean
                 else:
                     climateclass_map[x][y] = "~"
-            # Otherwise, the tile is land, and wetness is determined according to waterclass
+            # Otherwise, the tile is land, and wetness is determined according to waterclass.
+            # First, determine the effect of being near a west or east coast by latitude
             else:
                 west_wetness = macro_worldgen.CLIMATE_WEST_COAST_WETNESS[-1]
                 for i in range(len(macro_worldgen.CLIMATE_WEST_COAST_LATITUDE)):
@@ -356,19 +404,35 @@ def build_climateclass_map(waterclass_map, elev_map):
                     if latitude < macro_worldgen.CLIMATE_EAST_COAST_LATITUDE[i]:
                         east_wetness = macro_worldgen.CLIMATE_EAST_COAST_WETNESS[i]
                         break
-                if waterclass_map[x][y] == "i":
-                    wetness = max(west_wetness, east_wetness)
-                elif waterclass_map[x][y] == "w":
-                    wetness = west_wetness
-                elif waterclass_map[x][y] == "e":
-                    wetness = east_wetness
-                else:
-                    wetness = 0
+                # Next, determine the contribution of the coast to the wetness according to how many rainshadows
+                # there are. The fewer, the better.
+                # It is defined as the wetness from that direction minus the number of rainshadows,
+                # but no less than zero.
+                east_contribution = max(east_wetness - int(rainshadow_map[x][y][0]), 0)
+                west_contribution = max(west_wetness - int(rainshadow_map[x][y][1]), 0)
+                # Wetness then equals whichever of the two is greater.
+                wetness = max(east_contribution, west_contribution)
                 temperature_class = macro_worldgen.CLIMATE_TEMPERATURE_CLASS[-1]
                 for i in range(len(macro_worldgen.CLIMATE_TEMPERATURE_LATITUDE)):
                     if temperature_latitude < macro_worldgen.CLIMATE_TEMPERATURE_LATITUDE[i]:
                         temperature_class = macro_worldgen.CLIMATE_TEMPERATURE_CLASS[i]
                         break
+                wetness_map[x][y] = wetness
+                temperature_map[x][y] = temperature_class
+    # Penultimately, apply a filter wherein wet areas contribute some of their wetness to drier areas surrounding
+    wetness_boost_map = [[0 for _ in range(len(rainshadow_map[x]))] for x in range(len(rainshadow_map))]
+    for x in range(len(wetness_map)):
+        for y in range(len(wetness_map[x])):
+            for n in get_neighbors(x, y, len(wetness_map), len(wetness_map[x])):
+                if (wetness_map[x][y] != -1 and wetness_map[n[0]][n[1]] != -1
+                        and wetness_map[x][y] - wetness_map[n[0]][n[1]] >= 2):
+                    wetness_boost_map[n[0]][n[1]] = 1
+    # Finally, assign climates to the unassigned (land) areas
+    for x in range(len(wetness_map)):
+        for y in range(len(wetness_map[x])):
+            if climateclass_map[x][y] == "":
+                wetness = wetness_map[x][y] + wetness_boost_map[x][y]
+                temperature_class = temperature_map[x][y]
                 climateclass_map[x][y] = macro_worldgen.CLIMATE_COMBINATION_MATRIX[wetness][temperature_class]
     return climateclass_map
 
@@ -379,8 +443,8 @@ def generate_all_maps():
     plates_density = move_plates(world_plates, plate_types, plate_velocities)
     tile_class = assign_tectonic_class(plates_density)
     elev_map = build_elevation_map(tile_class)
-    waterclass_map = build_waterclass_map(elev_map)
-    climate_map = build_climateclass_map(waterclass_map, elev_map)
+    waterclass_map, rainshadow_map = build_waterclass_map(elev_map)
+    climate_map = build_climateclass_map(rainshadow_map, elev_map)
     return world_plates, plates_density, tile_class, elev_map, waterclass_map, climate_map
 
 def main():
@@ -392,7 +456,9 @@ def main():
 
     wp, pd, tc, em, wm, cm = generate_all_maps()
     io_util.write_matrix_to_csv(cm, "climate_map.csv")
-
+    io_util.write_matrix_to_csv(tc, "tileclass_map.csv")
+    io_util.write_matrix_to_csv(em, "elev_map.csv")
+    io_util.write_matrix_to_csv(identify_maxima(em), "hill_map.csv")
 
 if __name__ == '__main__':
     main()

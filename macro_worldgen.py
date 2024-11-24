@@ -13,7 +13,7 @@ LENY = 100
 
 # The number of tectonic plates to generate.
 # 20-40 makes for a chunky distribution, and 60+ makes for a somewhat "gory" distribution
-N_PLATES = 50
+N_PLATES = 60
 # Approximately what fraction of the world's land should be continental plates
 LAND_COVER = 0.35
 # How many tiles plates move maximally, with a base velocity, and an extra velocity depending on the type

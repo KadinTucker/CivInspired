@@ -5,6 +5,7 @@ import random
 import game
 import io_util
 import camera
+import macro_worldgen
 import terrain_palettes
 import world
 import worldgen
@@ -52,24 +53,55 @@ def generate_color_map(climatemap):
     colormap = [[(0, 0, 0) for _ in range(len(climatemap[x]))] for x in range(len(climatemap))]
     for x in range(len(climatemap)):
         for y in range(len(climatemap[x])):
-            colormap[x][y] = random.choice(TERRAIN_PALETTES[climatemap[x][y]])
+            # colormap[x][y] = random.choice(TERRAIN_PALETTES[climatemap[x][y]])
+            colormap[x][y] = TERRAIN_PALETTES[climatemap[x][y]][0]
     return colormap
 
-
 PANE_DIMENSIONS = (800, 400)
+
+TC_COLORS = {".": (30, 48, 104), "-": (20, 36, 80), "I": (44, 71, 48), "l": (149, 141, 118),
+             "V": (101, 48, 41), "M": (71, 71, 41)}
+ELEV_BREAKS = [macro_worldgen.CONTINENT_LEVEL, macro_worldgen.SEA_LEVEL,
+               macro_worldgen.SEA_LEVEL + macro_worldgen.VOLCANO_SHARING,
+               macro_worldgen.SEA_LEVEL + macro_worldgen.MOUNTAIN_SHARING,
+               macro_worldgen.SEA_LEVEL + macro_worldgen.VOLCANO_ELEV,
+               macro_worldgen.SEA_LEVEL + macro_worldgen.MOUNTAIN_ELEV]
+ELEV_COLORS = [(30, 48, 104), (94, 113, 175), (44, 71, 48), (86, 110, 80),
+               (149, 141, 118), (141, 110, 41), (71, 71, 41)]
+
+def classify_elev_color(elevation):
+    index = 0
+    while index < len(ELEV_BREAKS) and elevation > ELEV_BREAKS[index]:
+        index += 1
+    return ELEV_COLORS[index]
 
 def main():
     pygame.init()
     font = pygame.font.Font(None, 18)
     display = pygame.display.set_mode(PANE_DIMENSIONS)
     climatemap = load_climate_map("climate_map.csv")
-    #climatemap = worldgen.generate_all_maps()[5]
-    colormap = generate_color_map(climatemap)
-
+    hill_map = load_climate_map("hill_map.csv")
+    cl_colormap = generate_color_map(climatemap)
+    elev_map = load_climate_map("elev_map.csv")
+    tc_map = load_climate_map("tileclass_map.csv")
+    tc_colormap = [[(0, 0, 0) for _ in range(len(tc_map[x]))] for x in range(len(tc_map))]
+    ev_colormap = [[(0, 0, 0) for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
+    for x in range(len(tc_map)):
+        for y in range(len(tc_map[x])):
+            tc_colormap[x][y] = TC_COLORS[tc_map[x][y]]
+            if hill_map[x][y] == "True":
+                tc_colormap[x][y] = (0, 0, 0)
+            ev_colormap[x][y] = classify_elev_color(float(elev_map[x][y]))
     world_obj = world.World(None, climatemap, climatemap)
     game_obj = game.Game(1, world_obj)
 
-    player_start = (random.randint(2, len(climatemap) - 3), random.randint(2, len(climatemap[0]) - 3))
+    colormaps = [cl_colormap, ev_colormap, tc_colormap]
+    colormap_index = 0
+
+    valid_start = False
+    while not valid_start:
+        player_start = (random.randint(2, len(climatemap) - 3), random.randint(2, len(climatemap[0]) - 3))
+        valid_start = climatemap[player_start[0]][player_start[1]] not in ["-", "~"]
     game_obj.players[0].territory.explored[player_start[0]][player_start[1]] = True
     game_obj.players[0].territory.explored[player_start[0] + 1][player_start[1]] = True
     game_obj.players[0].territory.explored[player_start[0] - 1][player_start[1]] = True
@@ -98,8 +130,8 @@ def main():
 
     while True:
         display.fill((0, 0, 0))
-        draw_terrain(display, colormap, camera_obj)
-        draw_blackmap(display, game_obj.players[0], camera_obj)
+        draw_terrain(display, colormaps[colormap_index], camera_obj)
+        # draw_blackmap(display, game_obj.players[0], camera_obj)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -117,6 +149,15 @@ def main():
                     camera_obj.set_scale(int(1.5 * camera_obj.view_scale), pygame.mouse.get_pos())
                 elif event.key == pygame.K_MINUS:
                     camera_obj.set_scale(int(camera_obj.view_scale / 1.5), pygame.mouse.get_pos())
+                elif event.key == pygame.K_TAB:
+                    colormap_index += 1
+                    colormap_index %= len(colormaps)
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                clicked_coordinate = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
+                if 0 <= clicked_coordinate[0] < len(game_obj.players[0].territory.explored) \
+                        and 0 <= clicked_coordinate[1] < len(game_obj.players[0].territory.explored[0]):
+                    game_obj.players[0].territory \
+                            .explored[int(clicked_coordinate[0])][int(clicked_coordinate[1])] = True
         pygame.display.update()
 
 
