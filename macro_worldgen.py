@@ -13,7 +13,7 @@ LENY = 100
 
 # The number of tectonic plates to generate.
 # 20-40 makes for a chunky distribution, and 60+ makes for a somewhat "gory" distribution
-N_PLATES = 60
+N_PLATES = LENX * LENY // 350
 # Approximately what fraction of the world's land should be continental plates
 LAND_COVER = 0.35
 # How many tiles plates move maximally, with a base velocity, and an extra velocity depending on the type
@@ -22,11 +22,11 @@ CONTINENT_VELOCITY = PLATE_VELOCITY / 3
 OCEAN_VELOCITY = PLATE_VELOCITY
 
 # The amount by which elevation increases for each tile going inland
-ELEV_GAIN = 0.0005 * LENX
+ELEV_GAIN = 20 / LENX
 # The elevation units at which the sea ends
 SEA_LEVEL = 1.0
 # The base elevation units continents have before uplift
-CONTINENT_LEVEL = SEA_LEVEL - 2 * ELEV_GAIN
+CONTINENT_LEVEL = SEA_LEVEL - LENX * ELEV_GAIN / 100
 # The base elevation of rifts between divergent plates
 RIFT_LEVEL = 2 * CONTINENT_LEVEL / 3
 
@@ -38,13 +38,13 @@ MOUNTAIN_SHARING = 0.5
 VOLCANO_CHANCE = 0.5
 VOLCANO_ELEV = 1.0
 VOLCANO_SHARING = 0.2
-ISLAND_CHANCE = 0.25
-ISLAND_ELEV = 1.1
-ISLAND_SHARING = 0.5
+ISLAND_CHANCE = 0.2 * 200 / LENX
+ISLAND_ELEV = SEA_LEVEL + ELEV_GAIN
+ISLAND_SHARING = CONTINENT_LEVEL
 
 # The equivalent distance in tiles needed to travel before the rainshadow effect occurs and water is no longer sourced
 # from a nearby body
-RAINSHADOW_DISTANCE = 20
+RAINSHADOW_DISTANCE = LENX // 20
 # The amount by which an increase in elevation counts as distance for the rainshadow effect
 DISTANCE_PER_ELEV = 4.5
 

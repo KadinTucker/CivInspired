@@ -146,9 +146,9 @@ def main():
                 elif event.key == pygame.K_DOWN:
                     camera_obj.shift_view((0, 75))
                 elif event.key == pygame.K_PLUS:
-                    camera_obj.set_scale(int(1.5 * camera_obj.view_scale), pygame.mouse.get_pos())
+                    camera_obj.set_scale(round(1.6 * camera_obj.view_scale), pygame.mouse.get_pos())
                 elif event.key == pygame.K_MINUS:
-                    camera_obj.set_scale(int(camera_obj.view_scale / 1.5), pygame.mouse.get_pos())
+                    camera_obj.set_scale(max(1, round(camera_obj.view_scale / 1.6)), pygame.mouse.get_pos())
                 elif event.key == pygame.K_TAB:
                     colormap_index += 1
                     colormap_index %= len(colormaps)

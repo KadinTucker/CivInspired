@@ -75,14 +75,16 @@ def continents_gen(world_plates, plate_sizes):
     This means that only plates that are entirely located in one hemisphere are assigned as continents
     """
     plate_types = [0 for _ in range(macro_worldgen.N_PLATES)]
-    # Hemispheres: -1 means not yet assigned, 0 means both, 1 means east, 2 means west
+    # Hemispheres: -1 means not yet assigned, 0 means both/neither, 1 means east, 2 means west
     plate_hemispheres = [-1 for _ in range(macro_worldgen.N_PLATES)]
     for y in range(len(world_plates[0])):
         for x in range(len(world_plates)):
-            if x < len(world_plates) / 2:
+            if len(world_plates) / 10 < x < 4 * len(world_plates) / 10:
                 hemisphere = 2
-            else:
+            elif 6 * len(world_plates) / 10 < x < 9 * len(world_plates) / 10:
                 hemisphere = 1
+            else:
+                hemisphere = 0
             if plate_hemispheres[world_plates[x][y]] == -1:
                 plate_hemispheres[world_plates[x][y]] = hemisphere
             elif plate_hemispheres[world_plates[x][y]] != hemisphere:
@@ -176,7 +178,6 @@ def get_water_distance_map_dijkstra(tile_classes, waters):
                     start = (x, y)
             else:
                 dijkstra_matrix[x].append(1)
-    print(dijkstra_matrix)
     return dijkstra.dijkstra_on_matrix(dijkstra_matrix, start[0], start[1])
 
 def get_water_distance_map_stepwise(tile_class, waters):
@@ -191,7 +192,6 @@ def get_water_distance_map_stepwise(tile_class, waters):
     # Stepwise: consider all tiles. If unconsidered and border a tile of n-1, set them to n.
     step = 1
     while total_considered < len(tile_class) * len(tile_class[0]):
-        print(step, total_considered)
         for x in range(len(tile_class)):
             for y in range(len(tile_class[x])):
                 if waterdist_map[x][y] == -1:
@@ -212,10 +212,12 @@ def build_elevation_map(tile_class):
     """
     elev_map = [[0.0 for _ in range(len(tile_class[x]))] for x in range(len(tile_class))]
     waterdist_map = get_water_distance_map_stepwise(tile_class, [".", "-"])
+    oceandist_map = get_water_distance_map_stepwise(tile_class, ["."])
     for x in range(len(tile_class)):
         for y in range(len(tile_class[x])):
             if tile_class[x][y] in ["l", "M", "V", "I"]:
-                elev_map[x][y] += macro_worldgen.CONTINENT_LEVEL + waterdist_map[x][y] * macro_worldgen.ELEV_GAIN
+                elev_map[x][y] += (macro_worldgen.CONTINENT_LEVEL + (oceandist_map[x][y] + waterdist_map[x][y])
+                                   * macro_worldgen.ELEV_GAIN / 2)
                 if tile_class[x][y] == "M":
                     if random.random() < macro_worldgen.MOUNTAIN_CHANCE:
                         elev_map[x][y] += macro_worldgen.MOUNTAIN_ELEV
@@ -232,7 +234,7 @@ def build_elevation_map(tile_class):
                     for n in get_neighbors(x, y, len(tile_class), len(tile_class[x])):
                         elev_map[n[0]][n[1]] += macro_worldgen.ISLAND_SHARING
             if tile_class[x][y] == "-":
-                elev_map[x][y] += macro_worldgen.RIFT_LEVEL
+                elev_map[x][y] += macro_worldgen.RIFT_LEVEL + oceandist_map[x][y] * macro_worldgen.ELEV_GAIN / 2
     return elev_map
 
 def identify_maxima(elev_map):
