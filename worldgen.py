@@ -384,6 +384,12 @@ def generate_all_maps():
     return world_plates, plates_density, tile_class, elev_map, waterclass_map, climate_map
 
 def main():
+    # earth_geology = io_util.transpose_matrix(io_util.load_matrix_from_csv("Earth/earth-geology.csv"))
+    # earth_elev = build_elevation_map(earth_geology)
+    # earth_water = build_waterclass_map(earth_elev)
+    # earth_climate = build_climateclass_map(earth_water, earth_elev)
+    # io_util.write_matrix_to_csv(earth_climate, "earth_climate.csv")
+
     wp, pd, tc, em, wm, cm = generate_all_maps()
     io_util.write_matrix_to_csv(cm, "climate_map.csv")
 

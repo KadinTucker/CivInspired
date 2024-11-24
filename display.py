@@ -6,6 +6,7 @@ import city
 import worldgen
 
 import terrain_palettes
+import io_util
 
 EARTH_PLATE_TYPES = [1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0]
 
@@ -65,22 +66,15 @@ ELEVATION_COLORS = {
 }
 
 
-def regenerate_elev_map():
-    return worldgen.build_elev_from_scratch()
-
-
 def get_climate_map(elev_map):
     print("Simulating climate...")
     return worldgen.build_climateclass_map(worldgen.build_waterclass_map(elev_map), elev_map)
 
-
 def get_d8(elev_map):
     return worldgen.build_d8_map(elev_map)
 
-
 def get_topo(elev_map):
     return worldgen.build_topography_map(elev_map)
-
 
 def draw_terrain(display, climatemap, xwidth, ywidth, xcorner, ycorner):
     for x in range(len(climatemap)):
@@ -145,9 +139,8 @@ def main():
     pygame.init()
     font = pygame.font.Font(None, 18)
     display = pygame.display.set_mode((800, 400))
-    elev_map = regenerate_elev_map()
     # elev_map = worldgen.build_elev_from_csv_plates("Earth/plates_remapped.csv", EARTH_PLATE_TYPES, None)
-    climate_map = get_climate_map(elev_map)
+    climate_map = io_util.load_matrix_from_csv("climate_map.csv")
     xcorner = 0
     ycorner = 0
     xwidth = int(800 / len(climate_map))
