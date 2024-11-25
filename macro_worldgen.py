@@ -26,9 +26,9 @@ ELEV_GAIN = 20 / LENX
 # The elevation units at which the sea ends
 SEA_LEVEL = 1.0
 # The base elevation units continents have before uplift
-CONTINENT_LEVEL = SEA_LEVEL - LENX * ELEV_GAIN / 100
+CONTINENT_LEVEL = SEA_LEVEL - ELEV_GAIN * 400 / LENX
 # The base elevation of rifts between divergent plates
-RIFT_LEVEL = 2 * CONTINENT_LEVEL / 3
+RIFT_LEVEL = CONTINENT_LEVEL - ELEV_GAIN * 5
 
 # In the below 'geology' macros, there is the chance of a geological feature occurring in a relevant location,
 # the elevation gained if the feature occurs, and the elevation spread (shared) to neighboring tiles
@@ -71,3 +71,15 @@ CLIMATE_COMBINATION_MATRIX = [
     ["I", "T", "F", "g", "S"],   # Medium-Wet
     ["I", "T", "F", "J", "J"]    # Wet
 ]  # ice; cold cool warm hot
+
+WATER_CLIMATE_CONTRIBUTION = {
+    "I": 1.0,
+    "u": 1.0,
+    "T": 1.5,
+    "p": 0.5,
+    "d": 0.1,
+    "F": 1.5,
+    "g": 1.0,
+    "S": 1.0,
+    "J": 1.5
+}

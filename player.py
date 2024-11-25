@@ -2,6 +2,8 @@ import city
 import unit
 import player_territory
 
+import random
+
 class Player:
     """
     An object representing a player of the game
@@ -18,6 +20,7 @@ class Player:
         self.cities = []
         self.territory = player_territory.PlayerTerritory(game_obj, self)
         self.units = []
+        self.color = (random.randint(50, 255), random.randint(50, 255), random.randint(50, 255))
 
     def add_city(self, c):
         """

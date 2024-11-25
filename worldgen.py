@@ -1,5 +1,6 @@
 import math
 import random
+import sys
 
 import io_util
 import dijkstra
@@ -438,6 +439,44 @@ def build_climateclass_map(rainshadow_map, elev_map):
                 climateclass_map[x][y] = macro_worldgen.CLIMATE_COMBINATION_MATRIX[wetness][temperature_class]
     return climateclass_map
 
+def build_flow_accumulation(climate_map, elev_map):
+    accumulation_map = [[0 for _ in range(len(climate_map[x]))] for x in range(len(climate_map))]
+    elev_noise_map = [[((random.random() + random.random()) - 1) * macro_worldgen.ELEV_GAIN
+                       for _ in range(len(climate_map[x]))] for x in range(len(climate_map))]
+    waters = ["-", "=", "~"]
+    for x in range(len(climate_map)):
+        for y in range(len(climate_map[x])):
+            if climate_map[x][y] not in waters:
+                precip = macro_worldgen.WATER_CLIMATE_CONTRIBUTION[climate_map[x][y]] * elev_map[x][y]
+                flow_x = x
+                flow_y = y
+                accumulation_map[x][y] += precip
+                flowing = True
+                while flowing:
+                    neighbors = get_neighbors(flow_x, flow_y, len(elev_map), len(elev_map[0]))
+                    max_slope = 0
+                    argmax = -1
+                    indices = [i for i in range(len(neighbors))]
+                    random.shuffle(indices)
+                    for n in indices:
+                        slope = max(0, elev_map[flow_x][flow_y] + elev_noise_map[flow_x][flow_y]
+                                    - elev_map[neighbors[n][0]][neighbors[n][1]]
+                                    - elev_noise_map[neighbors[n][0]][neighbors[n][1]])
+                        if slope > max_slope:
+                            max_slope = slope
+                            argmax = n
+                    if argmax == -1:
+                        flowing = False
+                    else:
+                        flow_x = neighbors[argmax][0]
+                        flow_y = neighbors[argmax][1]
+                        if climate_map[flow_x][flow_y] in waters:
+                            flowing = False
+                        else:
+                            accumulation_map[flow_x][flow_y] += precip
+    return accumulation_map
+
+
 def generate_all_maps():
     world_plates, plate_sizes = create_plates()
     plate_types = continents_gen(world_plates, plate_sizes)
@@ -447,7 +486,8 @@ def generate_all_maps():
     elev_map = build_elevation_map(tile_class)
     waterclass_map, rainshadow_map = build_waterclass_map(elev_map)
     climate_map = build_climateclass_map(rainshadow_map, elev_map)
-    return world_plates, plates_density, tile_class, elev_map, waterclass_map, climate_map
+    accumulation_map = build_flow_accumulation(climate_map, elev_map)
+    return world_plates, plates_density, tile_class, elev_map, waterclass_map, climate_map, accumulation_map
 
 def main():
     # earth_geology = io_util.transpose_matrix(io_util.load_matrix_from_csv("Earth/earth-geology.csv"))
@@ -456,11 +496,13 @@ def main():
     # earth_climate = build_climateclass_map(earth_water, earth_elev)
     # io_util.write_matrix_to_csv(earth_climate, "earth_climate.csv")
 
-    wp, pd, tc, em, wm, cm = generate_all_maps()
+    wp, pd, tc, em, wm, cm, fa = generate_all_maps()
     io_util.write_matrix_to_csv(cm, "climate_map.csv")
     io_util.write_matrix_to_csv(tc, "tileclass_map.csv")
     io_util.write_matrix_to_csv(em, "elev_map.csv")
     io_util.write_matrix_to_csv(identify_maxima(em), "hill_map.csv")
+    io_util.write_matrix_to_csv(fa, "accumulation_map.csv")
 
 if __name__ == '__main__':
+    sys.setrecursionlimit(10000)
     main()

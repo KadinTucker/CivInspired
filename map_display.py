@@ -25,37 +25,100 @@ TERRAIN_PALETTES = {
     "=": terrain_palettes.COAST_E,
 }
 
+SIMPLE_COLORS = {
+    "J": (31, 74, 20),
+    "d": (187, 160, 133),
+    "S": (156, 133, 58),
+    "g": (86, 119, 65),
+    "p": (159, 151, 119),
+    "F": (46, 82, 43),
+    "T": (59, 75, 78),
+    "u": (95, 95, 81),
+    "I": (189, 194, 188),
+    "~": (30, 48, 104),
+    "-": (114, 144, 161),
+    "=": (84, 93, 165),
+}
+
+
 def load_climate_map(filename):
     return io_util.load_matrix_from_csv(filename)
+
 
 def get_draw_coordinate(x, y, map_corner, tile_size, map_dimensions):
     offset = 0
     if tile_size[0] * map_dimensions[0] < PANE_DIMENSIONS[0]:
         offset = (PANE_DIMENSIONS[0] - int(tile_size[0]) * map_dimensions[0]) // 2
-    return (offset + (x + map_corner[0]) % map_dimensions[0] * int(tile_size[0]), (y + map_corner[1]) * int(tile_size[0]))
+    return (
+    offset + (x + map_corner[0]) % map_dimensions[0] * int(tile_size[0]), (y + map_corner[1]) * int(tile_size[0]))
+
 
 def draw_terrain(display, colormap, camera_obj):
     for x in range(len(colormap)):
         for y in range(len(colormap[x])):
-            c = camera_obj.project_coordinate((x, y))
+            cx, cy = camera_obj.project_coordinate((x, y))
             pygame.draw.rect(display, colormap[x][y],
-                             pygame.Rect(c[0], c[1], camera_obj.view_scale, camera_obj.view_scale))
+                             pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+
+
+def get_control_boundaries(x, y, control_matrix):
+    neighbors = worldgen.get_neighbors(x, y, len(control_matrix), len(control_matrix[x]))
+    return [not control_matrix[n[0]][n[1]] for n in neighbors]
+
+
+# For each border, a pair of vertices
+# The coordinates in each vertex describe whether the width of the rect should be added
+# In particular:
+# (1, 0) is the top right corner
+# (1, 1) is the bottom right
+# (0, 0) is the top left
+# (0, 1) is the bottom left
+BORDER_VERTICES = [((1, 0), (1, 1)), ((0, 0), (0, 1)), ((0, 1), (1, 1)), ((0, 0), (1, 0))]
+
+
+def draw_borders(display, x, y, control_matrix, color, rect):
+    boundaries = get_control_boundaries(x, y, control_matrix)
+    for b in range(len(boundaries)):
+        if boundaries[b]:
+            pygame.draw.line(display, color, (rect[0] + BORDER_VERTICES[b][0][0] * (rect[2] - 1),
+                                              rect[1] + BORDER_VERTICES[b][0][1] * (rect[3] - 1)),
+                             (rect[0] + BORDER_VERTICES[b][1][0] * (rect[2] - 1),
+                              rect[1] + BORDER_VERTICES[b][1][1] * (rect[3] - 1)))
+
+def draw_player_control(display, player_obj, camera_obj):
+    for x in range(len(player_obj.territory.territory)):
+        for y in range(len(player_obj.territory.territory[x])):
+            cx, cy = camera_obj.project_coordinate((x, y))
+            if player_obj.territory.cores[x][y]:
+                pygame.draw.rect(display, player_obj.color,
+                                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+                draw_borders(display, x, y, player_obj.territory.cores, (0, 0, 0),
+                             (int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+            elif player_obj.territory.territory[x][y]:
+                pygame.draw.rect(display, player_obj.color,
+                                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale),
+                                 int(camera_obj.view_scale / 4))
+                draw_borders(display, x, y, player_obj.territory.territory, (0, 0, 0),
+                             (int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+
 
 def draw_blackmap(display, player, camera_obj):
     for x in range(len(player.territory.explored)):
         for y in range(len(player.territory.explored[x])):
-            c = camera_obj.project_coordinate((x, y))
+            cx, cy = camera_obj.project_coordinate((x, y))
             if not player.territory.explored[x][y]:
                 pygame.draw.rect(display, (10, 10, 10),
-                                 pygame.Rect(c[0], c[1], camera_obj.view_scale+1, camera_obj.view_scale+1))
+                                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+
 
 def generate_color_map(climatemap):
     colormap = [[(0, 0, 0) for _ in range(len(climatemap[x]))] for x in range(len(climatemap))]
     for x in range(len(climatemap)):
         for y in range(len(climatemap[x])):
             # colormap[x][y] = random.choice(TERRAIN_PALETTES[climatemap[x][y]])
-            colormap[x][y] = TERRAIN_PALETTES[climatemap[x][y]][0]
+            colormap[x][y] = SIMPLE_COLORS[climatemap[x][y]]
     return colormap
+
 
 PANE_DIMENSIONS = (800, 400)
 
@@ -69,11 +132,13 @@ ELEV_BREAKS = [macro_worldgen.CONTINENT_LEVEL, macro_worldgen.SEA_LEVEL,
 ELEV_COLORS = [(30, 48, 104), (94, 113, 175), (44, 71, 48), (86, 110, 80),
                (149, 141, 118), (141, 110, 41), (71, 71, 41)]
 
+
 def classify_elev_color(elevation):
     index = 0
     while index < len(ELEV_BREAKS) and elevation > ELEV_BREAKS[index]:
         index += 1
     return ELEV_COLORS[index]
+
 
 def main():
     pygame.init()
@@ -84,24 +149,28 @@ def main():
     cl_colormap = generate_color_map(climatemap)
     elev_map = load_climate_map("elev_map.csv")
     tc_map = load_climate_map("tileclass_map.csv")
+    fa_map = load_climate_map("accumulation_map.csv")
     tc_colormap = [[(0, 0, 0) for _ in range(len(tc_map[x]))] for x in range(len(tc_map))]
     ev_colormap = [[(0, 0, 0) for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
+    fa_colormap = [[(0, 0, 0) for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
     for x in range(len(tc_map)):
         for y in range(len(tc_map[x])):
             tc_colormap[x][y] = TC_COLORS[tc_map[x][y]]
             if hill_map[x][y] == "True":
                 tc_colormap[x][y] = (0, 0, 0)
             ev_colormap[x][y] = classify_elev_color(float(elev_map[x][y]))
+            fa_value = min(255, 10 * float(fa_map[x][y]))
+            fa_colormap[x][y] = (fa_value, fa_value, fa_value)
     world_obj = world.World(None, climatemap, climatemap)
     game_obj = game.Game(1, world_obj)
 
-    colormaps = [cl_colormap, ev_colormap, tc_colormap]
+    colormaps = [cl_colormap, ev_colormap, tc_colormap, fa_colormap]
     colormap_index = 0
 
     valid_start = False
     while not valid_start:
         player_start = (random.randint(2, len(climatemap) - 3), random.randint(2, len(climatemap[0]) - 3))
-        valid_start = climatemap[player_start[0]][player_start[1]] not in ["-", "~"]
+        valid_start = climatemap[player_start[0]][player_start[1]] not in ["-", "~", "I"]
     game_obj.players[0].territory.explored[player_start[0]][player_start[1]] = True
     game_obj.players[0].territory.explored[player_start[0] + 1][player_start[1]] = True
     game_obj.players[0].territory.explored[player_start[0] - 1][player_start[1]] = True
@@ -131,7 +200,13 @@ def main():
     while True:
         display.fill((0, 0, 0))
         draw_terrain(display, colormaps[colormap_index], camera_obj)
-        # draw_blackmap(display, game_obj.players[0], camera_obj)
+        draw_player_control(display, game_obj.players[0], camera_obj)
+        #draw_blackmap(display, game_obj.players[0], camera_obj)
+        #cx, cy = camera_obj.project_coordinate(player_start)
+        #pygame.draw.rect(display, game_obj.players[0].color,
+        #                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+        #pygame.draw.rect(display, (0, 0, 0),
+        #                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale), 1)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -152,12 +227,24 @@ def main():
                 elif event.key == pygame.K_TAB:
                     colormap_index += 1
                     colormap_index %= len(colormaps)
+            elif event.type == pygame.MOUSEMOTION:
+                if pygame.mouse.get_pressed()[0]:
+                    mouse_coordinate = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
+                    if 0 <= mouse_coordinate[0] < len(game_obj.players[0].territory.explored) \
+                            and 0 <= mouse_coordinate[1] < len(game_obj.players[0].territory.explored[0]):
+                        game_obj.players[0].territory \
+                            .explored[int(mouse_coordinate[0])][int(mouse_coordinate[1])] = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                clicked_coordinate = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
-                if 0 <= clicked_coordinate[0] < len(game_obj.players[0].territory.explored) \
-                        and 0 <= clicked_coordinate[1] < len(game_obj.players[0].territory.explored[0]):
-                    game_obj.players[0].territory \
-                            .explored[int(clicked_coordinate[0])][int(clicked_coordinate[1])] = True
+                if event.button == pygame.BUTTON_RIGHT:
+                    mouse_coordinate = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
+                    if 0 <= mouse_coordinate[0] < len(game_obj.players[0].territory.territory) \
+                            and 0 <= mouse_coordinate[1] < len(game_obj.players[0].territory.territory[0]):
+                        if game_obj.players[0].territory.territory[int(mouse_coordinate[0])][int(mouse_coordinate[1])]:
+                            game_obj.players[0].territory \
+                                .cores[int(mouse_coordinate[0])][int(mouse_coordinate[1])] = True
+                        game_obj.players[0].territory \
+                            .territory[int(mouse_coordinate[0])][int(mouse_coordinate[1])] = True
+
         pygame.display.update()
 
 
