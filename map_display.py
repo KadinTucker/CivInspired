@@ -145,7 +145,7 @@ def main():
     font = pygame.font.Font(None, 18)
     display = pygame.display.set_mode(PANE_DIMENSIONS)
     climatemap = load_climate_map("climate_map.csv")
-    hill_map = load_climate_map("hill_map.csv")
+    hill_map = load_climate_map("valley_map.csv")
     cl_colormap = generate_color_map(climatemap)
     elev_map = load_climate_map("elev_map.csv")
     tc_map = load_climate_map("tileclass_map.csv")

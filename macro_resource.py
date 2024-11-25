@@ -5,6 +5,7 @@ Index 0 for all entries is reserved for the 'NULL' entry, that is to be used in 
 This file is for resources; more specifically, what are called 'goods' in the rulebook
 """
 
+# Energy1 is energy usable for militaries and transport, and Energy2 is usable for navies and factories
 CLASS_NAMES = "NULL Foodstuffs Livestock Material Energy1 Energy2 Luxury Military".split()
 
 RESOURCE_NAMES = ("NULL Wheat Maize Rice Potato Banana Pineapple Deer Fish Cattle Sheep Swine Llama Timber Stone "

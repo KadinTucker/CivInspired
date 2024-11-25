@@ -251,6 +251,19 @@ def identify_maxima(elev_map):
                 hill_map[x][y] = maximal
     return hill_map
 
+def identify_minima(elev_map):
+    valley_map = [[False for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
+    for x in range(len(elev_map)):
+        for y in range(len(elev_map[x])):
+            if elev_map[x][y] >= macro_worldgen.SEA_LEVEL:
+                minimal = True
+                for n in get_neighbors(x, y, len(elev_map), len(elev_map[x])):
+                    if elev_map[x][y] > elev_map[n[0]][n[1]]:
+                        minimal = False
+                        break
+                valley_map[x][y] = minimal
+    return valley_map
+
 def build_ocean_connection_map(elev_map):
     """
     Assigns a class to each tile determining whether it is connected to an ocean
@@ -501,6 +514,7 @@ def main():
     io_util.write_matrix_to_csv(tc, "tileclass_map.csv")
     io_util.write_matrix_to_csv(em, "elev_map.csv")
     io_util.write_matrix_to_csv(identify_maxima(em), "hill_map.csv")
+    io_util.write_matrix_to_csv(identify_minima(em), "valley_map.csv")
     io_util.write_matrix_to_csv(fa, "accumulation_map.csv")
 
 if __name__ == '__main__':
