@@ -80,9 +80,9 @@ def continents_gen(world_plates, plate_sizes):
     plate_hemispheres = [-1 for _ in range(macro_worldgen.N_PLATES)]
     for y in range(len(world_plates[0])):
         for x in range(len(world_plates)):
-            if len(world_plates) / 10 < x < 4 * len(world_plates) / 10:
+            if len(world_plates) / 20 < x < 9 * len(world_plates) / 20:
                 hemisphere = 2
-            elif 6 * len(world_plates) / 10 < x < 9 * len(world_plates) / 10:
+            elif 11 * len(world_plates) / 20 < x < 19 * len(world_plates) / 20:
                 hemisphere = 1
             else:
                 hemisphere = 0
@@ -216,8 +216,8 @@ def build_elevation_map(tile_class):
     oceandist_map = get_water_distance_map_stepwise(tile_class, ["."])
     for x in range(len(tile_class)):
         for y in range(len(tile_class[x])):
-            if tile_class[x][y] in ["l", "M", "V", "I"]:
-                elev_map[x][y] += (macro_worldgen.CONTINENT_LEVEL + (oceandist_map[x][y] + waterdist_map[x][y])
+            if tile_class[x][y] in ["l", "M", "V"]:
+                elev_map[x][y] += (macro_worldgen.CONTINENT_LEVEL + (oceandist_map[x][y] + waterdist_map[x][y] - 2)
                                    * macro_worldgen.ELEV_GAIN / 2)
                 if tile_class[x][y] == "M":
                     if random.random() < macro_worldgen.MOUNTAIN_CHANCE:
@@ -230,12 +230,17 @@ def build_elevation_map(tile_class):
                         for n in get_neighbors(x, y, len(tile_class), len(tile_class[x])):
                             elev_map[n[0]][n[1]] += macro_worldgen.VOLCANO_SHARING
             if tile_class[x][y] == "I":
+                elev_map[x][y] += ((oceandist_map[x][y] + waterdist_map[x][y] - 2)
+                                   * macro_worldgen.ELEV_GAIN / 2)
                 if random.random() < macro_worldgen.ISLAND_CHANCE:
                     elev_map[x][y] += macro_worldgen.ISLAND_ELEV
                     for n in get_neighbors(x, y, len(tile_class), len(tile_class[x])):
                         elev_map[n[0]][n[1]] += macro_worldgen.ISLAND_SHARING
             if tile_class[x][y] == "-":
                 elev_map[x][y] += macro_worldgen.RIFT_LEVEL + oceandist_map[x][y] * macro_worldgen.ELEV_GAIN / 2
+            # Apply some noise
+            #print(max(0.0, elev_map[x][y] + (random.random() * 2 - 1) * macro_worldgen.ELEV_GAIN))
+            elev_map[x][y] = max(0.0, elev_map[x][y] + (random.random() * 2 - 1) * macro_worldgen.ELEV_GAIN)
     return elev_map
 
 def identify_maxima(elev_map):

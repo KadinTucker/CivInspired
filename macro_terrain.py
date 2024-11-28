@@ -6,9 +6,9 @@ This file is for physical terrain.
 """
 
 
-TERRAIN_NAMES = "NULL Coast Ocean Grassland Plains Tundra Desert Forest Savannah Taiga Jungle".split()
+TERRAIN_NAMES = "NULL Coast Ocean Grassland Plains Tundra Desert Forest Savannah Taiga Jungle Ice".split()
 
 # Yields are sorted into food, material, commerce.
 TERRAIN_YIELDS = [(0, 0, 0), (1, 0, 2), (0, 0, 2), (2, 0, 1), (1, 1, 1), (1, 0, 1), (0, 1, 1), (1, 2, 0), (2, 1, 0),
-                  (1, 1, 0), (1, 1, 0)]
+                  (1, 1, 0), (1, 1, 0), (0, 0, 0)]
 
