@@ -26,10 +26,10 @@ def wrap_coordinate(x, y, lenx, leny):
     """
     if y < 0:
         x += lenx // 2
-        y = -y
+        y = (-(y + 1)) % leny
     elif y >= leny:
         x += lenx // 2
-        y = 2 * leny - y - 1
+        y = (2 * leny - y - 1) % leny
     x = x % lenx
     return x, y
 

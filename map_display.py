@@ -60,6 +60,15 @@ def draw_terrain(display, colormap, camera_obj):
             pygame.draw.rect(display, colormap[x][y],
                              pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
 
+def draw_map(display, colormap, camera_obj, game_obj):
+    for x in range(int(display.get_width() / camera_obj.view_scale)):
+        for y in range(int(display.get_height() / camera_obj.view_scale)):
+            world_x, world_y = worldgen.wrap_coordinate(x + int(camera_obj.view_corner[0]),
+                                                        y + int(camera_obj.view_corner[1]),
+                                                        len(colormap), len(colormap[0]))
+            rect = (x * camera_obj.view_scale, y * camera_obj.view_scale, camera_obj.view_scale, camera_obj.view_scale)
+            pygame.draw.rect(display, colormap[world_x][world_y], rect)
+            draw_player_control(display, game_obj.players[0], rect, world_x, world_y)
 
 def get_control_boundaries(x, y, control_matrix):
     neighbors = worldgen.get_neighbors(x, y, len(control_matrix), len(control_matrix[x]))
@@ -85,7 +94,7 @@ def draw_borders(display, x, y, control_matrix, color, rect):
                              (rect[0] + BORDER_VERTICES[b][1][0] * (rect[2] - 1),
                               rect[1] + BORDER_VERTICES[b][1][1] * (rect[3] - 1)))
 
-def draw_player_control(display, player_obj, camera_obj):
+def draw_player_control_old(display, player_obj, camera_obj):
     for x in range(len(player_obj.territory.territory)):
         for y in range(len(player_obj.territory.territory[x])):
             cx, cy = camera_obj.project_coordinate((x, y))
@@ -101,6 +110,13 @@ def draw_player_control(display, player_obj, camera_obj):
                 draw_borders(display, x, y, player_obj.territory.territory, (0, 0, 0),
                              (int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
 
+def draw_player_control(display, player_obj, rect, x, y):
+    if player_obj.territory.cores[x][y]:
+        pygame.draw.rect(display, player_obj.color, rect)
+        draw_borders(display, x, y, player_obj.territory.cores, (0, 0, 0), rect)
+    elif player_obj.territory.territory[x][y]:
+        pygame.draw.rect(display, player_obj.color, rect, int(rect[3] / 4))
+        draw_borders(display, x, y, player_obj.territory.territory, (0, 0, 0), rect)
 
 def draw_blackmap(display, player, camera_obj):
     for x in range(len(player.territory.explored)):
@@ -193,20 +209,30 @@ def main():
     game_obj.players[0].territory.explored[player_start[0] + 1][player_start[1] - 2] = True
     game_obj.players[0].territory.explored[player_start[0]][player_start[1] - 2] = True
 
-    camera_obj = camera.Camera()
+    camera_obj = camera.Camera((len(climatemap), len(climatemap[0])),
+                               (display.get_width(), display.get_height()))
     camera_obj.view_corner = (player_start[0] - 12, player_start[1] - 5)
     camera_obj.view_scale = 32
 
     while True:
-        display.fill((0, 0, 0))
-        draw_terrain(display, colormaps[colormap_index], camera_obj)
-        draw_player_control(display, game_obj.players[0], camera_obj)
+        display.fill((50, 50, 50))
+        #draw_terrain(display, colormaps[colormap_index], camera_obj)
+        #draw_player_control(display, game_obj.players[0], camera_obj)
+        draw_map(display, colormaps[colormap_index], camera_obj, game_obj)
         #draw_blackmap(display, game_obj.players[0], camera_obj)
         #cx, cy = camera_obj.project_coordinate(player_start)
         #pygame.draw.rect(display, game_obj.players[0].color,
         #                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
         #pygame.draw.rect(display, (0, 0, 0),
         #                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale), 1)
+        ox, oy = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
+        cx, cy = camera_obj.project_coordinate((ox, oy))
+        pygame.draw.rect(display, (255, 255, 255),
+                         pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+        for n in worldgen.get_neighbors(ox, oy, len(climatemap), len(climatemap[0])):
+            cx, cy = camera_obj.project_coordinate((n[0], n[1]))
+            pygame.draw.rect(display, (155, 155, 155),
+                             pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -236,14 +262,13 @@ def main():
                             .explored[int(mouse_coordinate[0])][int(mouse_coordinate[1])] = True
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == pygame.BUTTON_RIGHT:
-                    mouse_coordinate = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
-                    if 0 <= mouse_coordinate[0] < len(game_obj.players[0].territory.territory) \
-                            and 0 <= mouse_coordinate[1] < len(game_obj.players[0].territory.territory[0]):
-                        if game_obj.players[0].territory.territory[int(mouse_coordinate[0])][int(mouse_coordinate[1])]:
-                            game_obj.players[0].territory \
-                                .cores[int(mouse_coordinate[0])][int(mouse_coordinate[1])] = True
+                    x, y = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
+                    world_coordinate = worldgen.wrap_coordinate(x, y, len(climatemap), len(climatemap[0]))
+                    if game_obj.players[0].territory.territory[int(world_coordinate[0])][int(world_coordinate[1])]:
                         game_obj.players[0].territory \
-                            .territory[int(mouse_coordinate[0])][int(mouse_coordinate[1])] = True
+                            .cores[int(world_coordinate[0])][int(world_coordinate[1])] = True
+                    game_obj.players[0].territory \
+                        .territory[int(world_coordinate[0])][int(world_coordinate[1])] = True
 
         pygame.display.update()
 
