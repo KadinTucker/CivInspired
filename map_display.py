@@ -1,6 +1,7 @@
 import pygame
 import sys
 import random
+import math
 
 import game
 import io_util
@@ -41,17 +42,8 @@ SIMPLE_COLORS = {
 }
 
 
-def load_climate_map(filename):
+def load_map(filename):
     return io_util.load_matrix_from_csv(filename)
-
-
-def get_draw_coordinate(x, y, map_corner, tile_size, map_dimensions):
-    offset = 0
-    if tile_size[0] * map_dimensions[0] < PANE_DIMENSIONS[0]:
-        offset = (PANE_DIMENSIONS[0] - int(tile_size[0]) * map_dimensions[0]) // 2
-    return (
-    offset + (x + map_corner[0]) % map_dimensions[0] * int(tile_size[0]), (y + map_corner[1]) * int(tile_size[0]))
-
 
 def draw_terrain(display, colormap, camera_obj):
     for x in range(len(colormap)):
@@ -59,6 +51,22 @@ def draw_terrain(display, colormap, camera_obj):
             cx, cy = camera_obj.project_coordinate((x, y))
             pygame.draw.rect(display, colormap[x][y],
                              pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+
+def draw_spherical(display, colormap, camera_obj):
+    tile_height = min(display.get_width() // len(colormap),
+                      int(display.get_height() / (len(colormap[0]))) )
+    y_pos = 0
+    for y in range(len(colormap[0])):
+        scale = math.sin(math.pi * y / 100)
+        x_shift = (display.get_width() - len(colormap) // 2 * scale * tile_height) / 2
+        for x in range(len(colormap) // 2):
+            world_x, world_y = worldgen.wrap_coordinate(x + int(camera_obj.view_corner[0]),
+                                                        y,
+                                                        len(colormap), len(colormap[0]))
+            rect = (x * tile_height * scale + x_shift, y_pos,
+                    tile_height * scale + 1, tile_height * scale * math.pi / 2)
+            pygame.draw.rect(display, colormap[world_x][world_y], rect)
+        y_pos += int(scale * tile_height * math.pi / 2)
 
 def draw_map(display, colormap, camera_obj, game_obj):
     for x in range(int(display.get_width() / camera_obj.view_scale)):
@@ -131,8 +139,8 @@ def generate_color_map(climatemap):
     colormap = [[(0, 0, 0) for _ in range(len(climatemap[x]))] for x in range(len(climatemap))]
     for x in range(len(climatemap)):
         for y in range(len(climatemap[x])):
-            # colormap[x][y] = random.choice(TERRAIN_PALETTES[climatemap[x][y]])
-            colormap[x][y] = SIMPLE_COLORS[climatemap[x][y]]
+            colormap[x][y] = random.choice(TERRAIN_PALETTES[climatemap[x][y]])
+            # colormap[x][y] = SIMPLE_COLORS[climatemap[x][y]]
     return colormap
 
 
@@ -160,12 +168,13 @@ def main():
     pygame.init()
     font = pygame.font.Font(None, 18)
     display = pygame.display.set_mode(PANE_DIMENSIONS)
-    climatemap = load_climate_map("climate_map.csv")
-    hill_map = load_climate_map("valley_map.csv")
+    climatemap = load_map("climate_map.csv")
+    #climatemap = load_map("earth_climate.csv")
+    hill_map = load_map("valley_map.csv")
     cl_colormap = generate_color_map(climatemap)
-    elev_map = load_climate_map("elev_map.csv")
-    tc_map = load_climate_map("tileclass_map.csv")
-    fa_map = load_climate_map("accumulation_map.csv")
+    elev_map = load_map("elev_map.csv")
+    tc_map = load_map("tileclass_map.csv")
+    fa_map = load_map("accumulation_map.csv")
     tc_colormap = [[(0, 0, 0) for _ in range(len(tc_map[x]))] for x in range(len(tc_map))]
     ev_colormap = [[(0, 0, 0) for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
     fa_colormap = [[(0, 0, 0) for _ in range(len(elev_map[x]))] for x in range(len(elev_map))]
@@ -218,21 +227,22 @@ def main():
         display.fill((50, 50, 50))
         #draw_terrain(display, colormaps[colormap_index], camera_obj)
         #draw_player_control(display, game_obj.players[0], camera_obj)
-        draw_map(display, colormaps[colormap_index], camera_obj, game_obj)
+        #draw_map(display, colormaps[colormap_index], camera_obj, game_obj)
+        draw_spherical(display, colormaps[colormap_index], camera_obj)
         #draw_blackmap(display, game_obj.players[0], camera_obj)
         #cx, cy = camera_obj.project_coordinate(player_start)
         #pygame.draw.rect(display, game_obj.players[0].color,
         #                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
         #pygame.draw.rect(display, (0, 0, 0),
         #                 pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale), 1)
-        ox, oy = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
-        cx, cy = camera_obj.project_coordinate((ox, oy))
-        pygame.draw.rect(display, (255, 255, 255),
-                         pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
-        for n in worldgen.get_neighbors(ox, oy, len(climatemap), len(climatemap[0])):
-            cx, cy = camera_obj.project_coordinate((n[0], n[1]))
-            pygame.draw.rect(display, (155, 155, 155),
-                             pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+        # ox, oy = camera_obj.deproject_coordinate(pygame.mouse.get_pos())
+        # cx, cy = camera_obj.project_coordinate((ox, oy))
+        # pygame.draw.rect(display, (255, 255, 255),
+        #                  pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
+        # for n in worldgen.get_neighbors(ox, oy, len(climatemap), len(climatemap[0])):
+        #     cx, cy = camera_obj.project_coordinate((n[0], n[1]))
+        #     pygame.draw.rect(display, (155, 155, 155),
+        #                      pygame.Rect(int(cx), int(cy), camera_obj.view_scale, camera_obj.view_scale))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -269,7 +279,7 @@ def main():
                             .cores[int(world_coordinate[0])][int(world_coordinate[1])] = True
                     game_obj.players[0].territory \
                         .territory[int(world_coordinate[0])][int(world_coordinate[1])] = True
-
+        camera_obj.shift_view((4, 0))
         pygame.display.update()
 
 

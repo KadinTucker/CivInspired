@@ -240,7 +240,7 @@ def build_elevation_map(tile_class):
                 elev_map[x][y] += macro_worldgen.RIFT_LEVEL + oceandist_map[x][y] * macro_worldgen.ELEV_GAIN / 2
             # Apply some noise
             #print(max(0.0, elev_map[x][y] + (random.random() * 2 - 1) * macro_worldgen.ELEV_GAIN))
-            elev_map[x][y] = max(0.0, elev_map[x][y] + (random.random() * 2 - 1) * macro_worldgen.ELEV_GAIN)
+            #elev_map[x][y] = max(0.0, elev_map[x][y] + (random.random() * 2 - 1) * macro_worldgen.ELEV_GAIN)
     return elev_map
 
 def identify_maxima(elev_map):
@@ -508,13 +508,14 @@ def generate_all_maps():
     return world_plates, plates_density, tile_class, elev_map, waterclass_map, climate_map, accumulation_map
 
 def main():
-    # earth_geology = io_util.transpose_matrix(io_util.load_matrix_from_csv("Earth/earth-geology.csv"))
-    # earth_elev = build_elevation_map(earth_geology)
-    # earth_water = build_waterclass_map(earth_elev)
-    # earth_climate = build_climateclass_map(earth_water, earth_elev)
-    # io_util.write_matrix_to_csv(earth_climate, "earth_climate.csv")
+    #earth_geology = io_util.transpose_matrix(io_util.load_matrix_from_csv("Earth/earth-geology.csv"))
+    #earth_elev = build_elevation_map(earth_geology)
+    #earth_water, earth_rainshadow = build_waterclass_map(earth_elev)
+    #earth_climate = build_climateclass_map(earth_rainshadow, earth_elev)
+    #io_util.write_matrix_to_csv(earth_climate, "earth_climate.csv")
 
     wp, pd, tc, em, wm, cm, fa = generate_all_maps()
+    io_util.write_matrix_to_csv(tc, "Earth/geology_map.csv")
     io_util.write_matrix_to_csv(cm, "climate_map.csv")
     io_util.write_matrix_to_csv(tc, "tileclass_map.csv")
     io_util.write_matrix_to_csv(em, "elev_map.csv")
