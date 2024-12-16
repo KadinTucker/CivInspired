@@ -29,8 +29,8 @@ class Camera:
         Given a screen coordinate, get the corresponding object coordinate.
         Outputs coordinates that would be beyond the domain, but can be wrapped.
         """
-        return (int(coordinate[0] / self.view_scale + math.ceil(self.view_corner[0])),
-                int(coordinate[1] / self.view_scale + math.ceil(self.view_corner[1])))
+        return (math.floor(coordinate[0] / self.view_scale + math.floor(self.view_corner[0])),
+                math.floor(coordinate[1] / self.view_scale + math.floor(self.view_corner[1])))
 
     def shift_view(self, delta):
         """

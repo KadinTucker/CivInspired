@@ -71,12 +71,16 @@ def draw_spherical(display, colormap, camera_obj):
 def draw_map(display, colormap, camera_obj, game_obj):
     for x in range(int(display.get_width() / camera_obj.view_scale)):
         for y in range(int(display.get_height() / camera_obj.view_scale)):
-            world_x, world_y = worldgen.wrap_coordinate(x + int(camera_obj.view_corner[0]),
-                                                        y + int(camera_obj.view_corner[1]),
+            world_x, world_y = worldgen.wrap_coordinate(x + math.floor(camera_obj.view_corner[0]),
+                                                        y + math.floor(camera_obj.view_corner[1]),
                                                         len(colormap), len(colormap[0]))
             rect = (x * camera_obj.view_scale, y * camera_obj.view_scale, camera_obj.view_scale, camera_obj.view_scale)
-            pygame.draw.rect(display, colormap[world_x][world_y], rect)
-            draw_player_control(display, game_obj.players[0], rect, world_x, world_y)
+            # pygame.draw.rect(display, colormap[world_x][world_y], rect)
+            # draw_player_control(display, game_obj.players[0], rect, world_x, world_y)
+            map_y = y + math.floor(camera_obj.view_corner[1])
+            if 0 <= map_y < len(colormap[0]):
+                pygame.draw.rect(display, colormap[world_x][map_y], rect)
+                draw_player_control(display, game_obj.players[0], rect, world_x, map_y)
 
 def get_control_boundaries(x, y, control_matrix):
     neighbors = worldgen.get_neighbors(x, y, len(control_matrix), len(control_matrix[x]))
@@ -227,8 +231,8 @@ def main():
         display.fill((50, 50, 50))
         #draw_terrain(display, colormaps[colormap_index], camera_obj)
         #draw_player_control(display, game_obj.players[0], camera_obj)
-        #draw_map(display, colormaps[colormap_index], camera_obj, game_obj)
-        draw_spherical(display, colormaps[colormap_index], camera_obj)
+        draw_map(display, colormaps[colormap_index], camera_obj, game_obj)
+        #draw_spherical(display, colormaps[colormap_index], camera_obj)
         #draw_blackmap(display, game_obj.players[0], camera_obj)
         #cx, cy = camera_obj.project_coordinate(player_start)
         #pygame.draw.rect(display, game_obj.players[0].color,
@@ -279,7 +283,7 @@ def main():
                             .cores[int(world_coordinate[0])][int(world_coordinate[1])] = True
                     game_obj.players[0].territory \
                         .territory[int(world_coordinate[0])][int(world_coordinate[1])] = True
-        camera_obj.shift_view((4, 0))
+        #camera_obj.shift_view((4, 0))
         pygame.display.update()
 
 
